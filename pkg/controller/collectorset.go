@@ -246,7 +246,7 @@ func getResourceRequirements(size string) apiv1.ResourceRequirements {
 	var quantity *resource.Quantity
 	switch size {
 	case "nano":
-		break
+		quantity = resource.NewQuantity(2*1024*1024*1024, resource.BinarySI)
 	case "small":
 		quantity = resource.NewQuantity(2*1024*1024*1024, resource.BinarySI)
 	case "medium":
