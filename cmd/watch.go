@@ -24,7 +24,6 @@ import (
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/server"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // watchCmd represents the watch command
@@ -53,12 +52,6 @@ to quickly create a Cobra application.`,
 		collectorsetcontroller, err := controller.New(collectorsetconfig, storage)
 		if err != nil {
 			log.Fatalf("Failed to create CollectorSet controller: %v", err)
-		}
-
-		// Create the CRD if it does not already exist.
-		_, err = collectorsetcontroller.CreateCustomResourceDefinition()
-		if err != nil && !apierrors.IsAlreadyExists(err) {
-			log.Fatalf("Failed to create CRD: %v", err)
 		}
 
 		// Start the CollectorSet controller.
