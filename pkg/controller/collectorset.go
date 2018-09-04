@@ -114,6 +114,10 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 									},
 								},
 								{
+									Name:  "kubernetes",
+									Value: "true",
+								},
+								{
 									Name:  "collector_size",
 									Value: collectorset.Spec.Size,
 								},
