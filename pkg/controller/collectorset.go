@@ -74,7 +74,7 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 					Containers: []apiv1.Container{
 						{
 							Name:            "collector",
-							Image:           "logicmonitor/collector:latest",
+							Image:           "logicmonitor/collector:develop",
 							ImagePullPolicy: apiv1.PullAlways,
 							Env: []apiv1.EnvVar{
 								{
