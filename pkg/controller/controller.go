@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	lmextension "github.com/logicmonitor/k8s-collectorset-controller/pkg/controller/lm-sdk-go-extension"
 	"time"
 
 	crv1alpha1 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1"
@@ -28,6 +29,7 @@ type Controller struct {
 	*collectorsetclient.Client
 	CollectorSetScheme *runtime.Scheme
 	LogicmonitorClient *lm.DefaultApi
+	LMExtensionClient  *lmextension.ExtensionApi
 	Storage            storage.Storage
 }
 
@@ -48,11 +50,14 @@ func New(collectorsetconfig *config.Config, storage storage.Storage) (*Controlle
 	// Instantiate the LogicMontitor API client.
 	lmClient := newLMClient(collectorsetconfig.ID, collectorsetconfig.Key, collectorsetconfig.Account)
 
+	// Instantiate the LogicMonitorExtension API client
+	lmExtensionClient := newExtensionLMClient(lmClient.Configuration)
 	// start a controller on instances of our custom resource
 	c := &Controller{
 		Client:             client,
 		CollectorSetScheme: collectorsetscheme,
 		LogicmonitorClient: lmClient,
+		LMExtensionClient:  lmExtensionClient,
 		Storage:            storage,
 	}
 
@@ -90,7 +95,7 @@ func (c *Controller) watch(ctx context.Context) error {
 
 func (c *Controller) addFunc(obj interface{}) {
 	collectorset := obj.(*crv1alpha1.CollectorSet)
-	ids, err := CreateOrUpdateCollectorSet(collectorset, c.LogicmonitorClient, c.Clientset)
+	ids, err := CreateOrUpdateCollectorSet(collectorset, c)
 	if err != nil {
 		log.Errorf("Failed to create collectorset: %v", err)
 		return
@@ -124,7 +129,7 @@ func (c *Controller) updateFunc(oldObj, newObj interface{}) {
 	_ = oldObj.(*crv1alpha1.CollectorSet)
 	newcollectorset := newObj.(*crv1alpha1.CollectorSet)
 
-	_, err := CreateOrUpdateCollectorSet(newcollectorset, c.LogicmonitorClient, c.Clientset)
+	_, err := CreateOrUpdateCollectorSet(newcollectorset, c)
 	if err != nil {
 		log.Errorf("Failed to update collectorset: %v", err)
 		return
