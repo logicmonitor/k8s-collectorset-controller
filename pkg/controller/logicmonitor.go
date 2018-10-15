@@ -1,6 +1,9 @@
 package controller
 
-import lm "github.com/logicmonitor/lm-sdk-go"
+import (
+	extension "github.com/logicmonitor/k8s-collectorset-controller/pkg/controller/lm-sdk-go-extension"
+	lm "github.com/logicmonitor/lm-sdk-go"
+)
 
 func newLMClient(id, key, company string) *lm.DefaultApi {
 	config := lm.NewConfiguration()
@@ -15,5 +18,10 @@ func newLMClient(id, key, company string) *lm.DefaultApi {
 	api := lm.NewDefaultApi()
 	api.Configuration = config
 
+	return api
+}
+
+func newExtensionLMClient(config *lm.Configuration) *extension.ExtensionApi {
+	api := extension.NewExtensionApi(config)
 	return api
 }
