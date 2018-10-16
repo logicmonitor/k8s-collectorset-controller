@@ -236,7 +236,7 @@ func getCollectorIDs(client *lm.DefaultApi, groupID int32, collectorset *crv1alp
 				Description:                   name,
 				CollectorGroupId:              groupID,
 				NeedAutoCreateCollectorDevice: false,
-				EscalatingChainId:             collectorset.Spec.EscalationChainID, // the default value of this option param is 0
+				EscalatingChainId:             collectorset.Spec.EscalationChainID, // the default value of this option param is 0, which means disable notification
 			}
 			id, err = addCollector(client, collector)
 			if err != nil {
