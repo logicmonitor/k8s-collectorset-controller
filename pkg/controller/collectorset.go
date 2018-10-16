@@ -2,7 +2,6 @@ package controller
 
 import (
 	"fmt"
-	extension "github.com/logicmonitor/k8s-collectorset-controller/pkg/controller/lm-sdk-go-extension"
 	"strings"
 
 	crv1alpha1 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1"
@@ -21,24 +20,12 @@ import (
 
 // CreateOrUpdateCollectorSet creates a replicaset for each collector in
 // a CollectorSet
-func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, c *Controller) ([]int32, error) {
-	lmClient := c.LogicmonitorClient
-	lmExtensionClient := c.LMExtensionClient
-	client := c.Clientset
+func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient *lm.DefaultApi, client clientset.Interface) ([]int32, error) {
 	groupID, err := getCollectorGroupID(lmClient, collectorset.Name)
 	if err != nil {
 		return nil, err
 	}
 	log.Printf("Collector group %q has ID %d", strings.Title(collectorset.Name), groupID)
-
-	// check if the escalation chain exists by id
-	isExist := checkEscalationChainID(lmExtensionClient, collectorset.Spec.EscalationChainID)
-
-	// if the escalation chain does not exist, change the id to 0 which means disable notification
-	if !isExist {
-		log.Warnf("Reset the escalation chain ID to be 0", collectorset.Spec.EscalationChainID)
-		collectorset.Spec.EscalationChainID = 0
-	}
 
 	ids, err := getCollectorIDs(lmClient, groupID, collectorset)
 	if err != nil {
@@ -222,17 +209,6 @@ func getCollectorGroupID(client *lm.DefaultApi, name string) (int32, error) {
 	return -1, fmt.Errorf("Failed to get collector group ID")
 }
 
-func checkEscalationChainID(client *extension.ExtensionApi, id int32) bool {
-	restResponse, apiResponse, err := client.GetEscalationChainById(id, "")
-	if _err := utilities.CheckAllErrors(restResponse, apiResponse, err); _err != nil {
-		log.Warnf("Failed to get the escalation chain (id=%v): %v", id, _err)
-	}
-
-	if &restResponse.Data != nil && restResponse.Data.Id == id {
-		return true
-	}
-	return false
-}
 func addCollectorGroup(client *lm.DefaultApi, name string) (int32, error) {
 	group := lm.RestCollectorGroup{
 		Name: name,
@@ -256,7 +232,13 @@ func getCollectorIDs(client *lm.DefaultApi, groupID int32, collectorset *crv1alp
 		var id int32
 		if restResponse.Data.Total == 0 {
 			log.Printf("Adding collector with description %q", name)
-			id, err = addCollector(client, groupID, name, collectorset.Spec.EscalationChainID)
+			collector := lm.RestCollector{
+				Description:                   name,
+				CollectorGroupId:              groupID,
+				NeedAutoCreateCollectorDevice: false,
+				EscalatingChainId:             collectorset.Spec.EscalationChainID, // the default value of this option param is 0
+			}
+			id, err = addCollector(client, collector)
 			if err != nil {
 				return nil, err
 			}
@@ -291,13 +273,7 @@ func getResourceRequirements(size string) apiv1.ResourceRequirements {
 	}
 }
 
-func addCollector(client *lm.DefaultApi, groupID int32, description string, escalationChainID int32) (int32, error) {
-	collector := lm.RestCollector{
-		Description:                   description,
-		CollectorGroupId:              groupID,
-		NeedAutoCreateCollectorDevice: false,
-		EscalatingChainId:             escalationChainID,
-	}
+func addCollector(client *lm.DefaultApi, collector lm.RestCollector) (int32, error) {
 	restResponse, apiResponse, err := client.AddCollector(collector)
 	if _err := utilities.CheckAllErrors(restResponse, apiResponse, err); _err != nil {
 		return -1, _err
