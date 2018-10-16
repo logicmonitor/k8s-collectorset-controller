@@ -32,12 +32,11 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, c *Contro
 	log.Printf("Collector group %q has ID %d", strings.Title(collectorset.Name), groupID)
 
 	// check if the escalation chain exists by id
-	isExist, err := checkEscalationChainID(lmExtensionClient, collectorset.Spec.EscalationChainID)
-	if err != nil {
-		return nil, err
-	}
+	isExist := checkEscalationChainID(lmExtensionClient, collectorset.Spec.EscalationChainID)
+
 	// if the escalation chain does not exist, change the id to 0 which means disable notification
 	if !isExist {
+		log.Warnf("Reset the escalation chain ID to be 0", collectorset.Spec.EscalationChainID)
 		collectorset.Spec.EscalationChainID = 0
 	}
 
@@ -223,17 +222,16 @@ func getCollectorGroupID(client *lm.DefaultApi, name string) (int32, error) {
 	return -1, fmt.Errorf("Failed to get collector group ID")
 }
 
-func checkEscalationChainID(client *extension.ExtensionApi, id int32) (bool, error) {
+func checkEscalationChainID(client *extension.ExtensionApi, id int32) bool {
 	restResponse, apiResponse, err := client.GetEscalationChainById(id, "")
 	if _err := utilities.CheckAllErrors(restResponse, apiResponse, err); _err != nil {
-		return false, _err
+		log.Warnf("Failed to get the escalation chain (id=%v): %v", id, _err)
 	}
 
-	if &restResponse.Data == nil || restResponse.Data.Id != id {
-		log.Warnf("The escalation chain (id=%v) does not exist", id)
-		return false, nil
+	if &restResponse.Data != nil && restResponse.Data.Id == id {
+		return true
 	}
-	return true, nil
+	return false
 }
 func addCollectorGroup(client *lm.DefaultApi, name string) (int32, error) {
 	group := lm.RestCollectorGroup{

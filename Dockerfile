@@ -40,7 +40,7 @@ RUN chmod +x ./scripts/test.sh; sync; ./scripts/test.sh
 RUN cp coverage.txt /coverage.txt
 
 FROM alpine:3.6
-LABEL maintainer="LogicMonitor <argus@logicmonitor.com>"
+LABEL maintainer="Andrew Rynhard <andrew.rynhard@logicmonitor.com>"
 RUN apk --update add ca-certificates \
     && rm -rf /var/cache/apk/* \
     && rm -rf /var/lib/apk/*
