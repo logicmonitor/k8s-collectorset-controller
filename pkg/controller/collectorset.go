@@ -232,7 +232,13 @@ func getCollectorIDs(client *lm.DefaultApi, groupID int32, collectorset *crv1alp
 		var id int32
 		if restResponse.Data.Total == 0 {
 			log.Printf("Adding collector with description %q", name)
-			id, err = addCollector(client, groupID, name)
+			collector := lm.RestCollector{
+				Description:                   name,
+				CollectorGroupId:              groupID,
+				NeedAutoCreateCollectorDevice: false,
+				EscalatingChainId:             collectorset.Spec.EscalationChainID, // the default value of this option param is 0, which means disable notification
+			}
+			id, err = addCollector(client, collector)
 			if err != nil {
 				return nil, err
 			}
@@ -267,12 +273,7 @@ func getResourceRequirements(size string) apiv1.ResourceRequirements {
 	}
 }
 
-func addCollector(client *lm.DefaultApi, groupID int32, description string) (int32, error) {
-	collector := lm.RestCollector{
-		Description:                   description,
-		CollectorGroupId:              groupID,
-		NeedAutoCreateCollectorDevice: false,
-	}
+func addCollector(client *lm.DefaultApi, collector lm.RestCollector) (int32, error) {
 	restResponse, apiResponse, err := client.AddCollector(collector)
 	if _err := utilities.CheckAllErrors(restResponse, apiResponse, err); _err != nil {
 		return -1, _err

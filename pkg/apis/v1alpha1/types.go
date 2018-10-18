@@ -29,9 +29,10 @@ type CollectorSet struct {
 
 // CollectorSetSpec represents the collectorset controller's spec.
 type CollectorSetSpec struct {
-	Replicas *int32              `json:"replicas"`
-	Size     string              `json:"size,omitempty"`
-	Policy   *CollectorSetPolicy `json:"policy"`
+	Replicas          *int32              `json:"replicas"`
+	Size              string              `json:"size,omitempty"`
+	EscalationChainID int32               `json:"escalationChainID,omitempty"`
+	Policy            *CollectorSetPolicy `json:"policy"`
 }
 
 // CollectorSetStatus is the CollectorSet controller's status.
