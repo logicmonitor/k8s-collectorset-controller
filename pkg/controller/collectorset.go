@@ -122,6 +122,14 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 									Value: collectorset.Spec.Size,
 								},
 								{
+									Name:  "collector_version",
+									Value: fmt.Sprint(collectorset.Spec.CollectorVersion), //the default value is 0, santaba will assign the latest version
+								},
+								{
+									Name:  "use_ea",
+									Value: fmt.Sprint(collectorset.Spec.UseEA), //the default value is false, santaba will assign the latest GD version
+								},
+								{
 									Name:  "COLLECTOR_IDS",
 									Value: strings.Trim(strings.Join(strings.Fields(fmt.Sprint(ids)), ","), "[]"),
 								},

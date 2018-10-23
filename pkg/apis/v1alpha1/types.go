@@ -32,6 +32,8 @@ type CollectorSetSpec struct {
 	Replicas          *int32              `json:"replicas"`
 	Size              string              `json:"size,omitempty"`
 	EscalationChainID int32               `json:"escalationChainID,omitempty"`
+	CollectorVersion  int32               `json:"collectorVersion,omitempty"`
+	UseEA             bool                `json:"useEA,omitempty"`
 	Policy            *CollectorSetPolicy `json:"policy"`
 }
 
