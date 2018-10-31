@@ -74,11 +74,11 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 					Containers: []apiv1.Container{
 						{
 							Name:            "collector",
-							Image:           "logicmonitor/k8s-collector:develop",
+							Image:           "logicmonitor/collector:latest",
 							ImagePullPolicy: apiv1.PullAlways,
 							Env: []apiv1.EnvVar{
 								{
-									Name: "ACCOUNT",
+									Name: "account",
 									ValueFrom: &apiv1.EnvVarSource{
 										SecretKeyRef: &apiv1.SecretKeySelector{
 											LocalObjectReference: apiv1.LocalObjectReference{
@@ -90,7 +90,7 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 									},
 								},
 								{
-									Name: "ACCESS_ID",
+									Name: "access_id",
 									ValueFrom: &apiv1.EnvVarSource{
 										SecretKeyRef: &apiv1.SecretKeySelector{
 											LocalObjectReference: apiv1.LocalObjectReference{
@@ -102,7 +102,7 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 									},
 								},
 								{
-									Name: "ACCESS_KEY",
+									Name: "access_key",
 									ValueFrom: &apiv1.EnvVarSource{
 										SecretKeyRef: &apiv1.SecretKeySelector{
 											LocalObjectReference: apiv1.LocalObjectReference{
@@ -114,7 +114,11 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 									},
 								},
 								{
-									Name:  "COLLECTOR_SIZE",
+									Name:  "kubernetes",
+									Value: "true",
+								},
+								{
+									Name:  "collector_size",
 									Value: collectorset.Spec.Size,
 								},
 								{
