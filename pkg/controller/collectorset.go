@@ -202,7 +202,6 @@ func DeleteCollectorSet(collectorset *crv1alpha1.CollectorSet, client clientset.
 }
 
 func getCollectorGroupID(client *lm.DefaultApi, name string) (int32, error) {
-	name = strings.Title(name)
 	restResponse, apiResponse, err := client.GetCollectorGroupList("", 1, 0, "name:"+name)
 	if _err := utilities.CheckAllErrors(restResponse, apiResponse, err); _err != nil {
 		return -1, _err
