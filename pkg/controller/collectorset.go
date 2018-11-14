@@ -244,11 +244,18 @@ func getCollectorIDs(client *lm.DefaultApi, groupID int32, collectorset *crv1alp
 				Description:                   name,
 				CollectorGroupId:              groupID,
 				NeedAutoCreateCollectorDevice: false,
-				EscalatingChainId:             collectorset.Spec.EscalationChainID, // the default value of this option param is 0, which means disable notification
 			}
 			id, err = addCollector(client, collector)
 			if err != nil {
 				return nil, err
+			}
+
+			// update the escalating chain id, if failed the value will be the default value
+			// the default value of this option param is 0, which means disable notification
+			collector.EscalatingChainId = collectorset.Spec.EscalationChainID
+			_, _, err := client.UpdateCollectorById(id, collector)
+			if err != nil {
+				log.Warnf("Failed to update the escalation chain id:%v", err)
 			}
 		} else {
 			id = restResponse.Data.Items[0].Id
