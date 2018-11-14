@@ -231,14 +231,14 @@ func addCollectorGroup(client *lm.DefaultApi, name string) (int32, error) {
 func getCollectorIDs(client *lm.DefaultApi, groupID int32, collectorset *crv1alpha1.CollectorSet) ([]int32, error) {
 	var ids []int32
 	for ordinal := int32(0); ordinal < *collectorset.Spec.Replicas; ordinal++ {
-		filter := fmt.Sprintf("collectorGroupId:%v", groupID)
+		name := fmt.Sprintf("%s-%d", collectorset.Name, ordinal)
+		filter := fmt.Sprintf("collectorGroupId:%v,description:%v", groupID, name)
 		restResponse, apiResponse, err := client.GetCollectorList("", 1, 0, filter)
 		if _err := utilities.CheckAllErrors(restResponse, apiResponse, err); _err != nil {
 			return nil, _err
 		}
 		var id int32
 		if restResponse.Data.Total == 0 {
-			name := fmt.Sprintf("%s-%d", collectorset.Name, ordinal)
 			log.Printf("Adding collector with description %q", name)
 			collector := lm.RestCollector{
 				Description:                   name,
