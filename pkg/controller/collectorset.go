@@ -255,7 +255,7 @@ func getCollectorIDs(client *lm.DefaultApi, groupID int32, collectorset *crv1alp
 			collector.EscalatingChainId = collectorset.Spec.EscalationChainID
 			restResponse, apiResponse, err := client.UpdateCollectorById(id, collector)
 			if _err := utilities.CheckAllErrors(restResponse, apiResponse, err); _err != nil {
-				log.Warnf("Failed to update the escalation chain id, use default value. err:%v", _err)
+				log.Warnf("Failed to update the escalation chain id. The default value will be used. %v", _err)
 			}
 		} else {
 			id = restResponse.Data.Items[0].Id
