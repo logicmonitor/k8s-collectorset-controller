@@ -172,18 +172,16 @@ func updateCollectors(client *lm.DefaultApi, collectorset *crv1alpha1.CollectorS
 	}
 
 	for i := 0; i < len(ids); i++ {
-		name := fmt.Sprintf("%s-%d", collectorset.Name, i)
 		// We are at the beginning of a pair
+		var backupAgentID int32
 		if i%2 == 0 {
-			err := updateCollectorBackupAgent(client, groupID, ids[i], ids[i+1], name)
-			if err != nil {
-				return err
-			}
+			backupAgentID = ids[i+1]
 		} else {
-			err := updateCollectorBackupAgent(client, groupID, ids[i], ids[i-1], name)
-			if err != nil {
-				return err
-			}
+			backupAgentID = ids[i-1]
+		}
+		err := updateCollectorBackupAgent(client, ids[i], backupAgentID)
+		if err != nil {
+			log.Warnf("Failed to update the backup collector id: %v", err)
 		}
 	}
 
@@ -296,15 +294,19 @@ func addCollector(client *lm.DefaultApi, collector lm.RestCollector) (int32, err
 	return restResponse.Data.Id, nil
 }
 
-func updateCollectorBackupAgent(client *lm.DefaultApi, groupID, id, backupID int32, description string) error {
-	collector := lm.RestCollector{
-		Description:                   description,
-		CollectorGroupId:              groupID,
-		NeedAutoCreateCollectorDevice: false,
-		EnableFailBack:                true,
-		BackupAgentId:                 backupID,
+func updateCollectorBackupAgent(client *lm.DefaultApi, id, backupID int32) error {
+	// Get all the fields before updating to prevent setting default values to the other fields
+	restResponse, apiResponse, err := client.GetCollectorById(id, "")
+	if _err := utilities.CheckAllErrors(restResponse, apiResponse, err); _err != nil {
+		return fmt.Errorf("Failed to get the collector: %v", _err)
 	}
-	_, _, err := client.UpdateCollectorById(id, collector)
 
-	return err
+	collector := restResponse.Data
+	collector.EnableFailBack = true
+	collector.BackupAgentId = backupID
+	rstRsp, apiRsp, updateErr := client.UpdateCollectorById(id, collector)
+	if _err := utilities.CheckAllErrors(rstRsp, apiRsp, updateErr); _err != nil {
+		return fmt.Errorf("Failed to update the collector: %v", _err)
+	}
+	return nil
 }
