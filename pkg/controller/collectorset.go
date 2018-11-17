@@ -181,7 +181,7 @@ func updateCollectors(client *lm.DefaultApi, collectorset *crv1alpha1.CollectorS
 		}
 		err := updateCollectorBackupAgent(client, ids[i], backupAgentID)
 		if err != nil {
-			log.Warnf("Failed to update the collector backup agent: %v", err)
+			log.Warnf("Failed to update the backup collector id: %v", err)
 		}
 	}
 
@@ -304,7 +304,9 @@ func updateCollectorBackupAgent(client *lm.DefaultApi, id, backupID int32) error
 	collector := restResponse.Data
 	collector.EnableFailBack = true
 	collector.BackupAgentId = backupID
-	_, _, updateErr := client.UpdateCollectorById(id, collector)
-
-	return updateErr
+	rstRsp, apiRsp, updateErr := client.UpdateCollectorById(id, collector)
+	if _err := utilities.CheckAllErrors(rstRsp, apiRsp, updateErr); _err != nil {
+		return fmt.Errorf("Failed to update the collector: %v", _err)
+	}
+	return nil
 }
