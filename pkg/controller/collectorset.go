@@ -21,7 +21,7 @@ import (
 // CreateOrUpdateCollectorSet creates a replicaset for each collector in
 // a CollectorSet
 func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient *lm.DefaultApi, client clientset.Interface) ([]int32, error) {
-	groupID, err := getCollectorGroupID(lmClient, collectorset.Spec.GroupName)
+	groupID, err := getCollectorGroupID(lmClient, constants.ClusterCollectorGroupPrefix+collectorset.Spec.GroupName)
 	if err != nil {
 		return nil, err
 	}
