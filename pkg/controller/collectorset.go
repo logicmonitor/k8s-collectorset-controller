@@ -25,7 +25,7 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("Collector group %q has ID %d", strings.Title(collectorset.Spec.GroupName), groupID)
+	log.Printf("Collector group %q has ID %d", strings.Title(constants.ClusterCollectorGroupPrefix+collectorset.Spec.GroupName), groupID)
 
 	ids, err := getCollectorIDs(lmClient, groupID, collectorset)
 	if err != nil {
@@ -229,7 +229,7 @@ func addCollectorGroup(client *lm.DefaultApi, name string) (int32, error) {
 func getCollectorIDs(client *lm.DefaultApi, groupID int32, collectorset *crv1alpha1.CollectorSet) ([]int32, error) {
 	var ids []int32
 	for ordinal := int32(0); ordinal < *collectorset.Spec.Replicas; ordinal++ {
-		name := fmt.Sprintf("%s-%d", collectorset.Spec.GroupName, ordinal)
+		name := fmt.Sprintf("%s%s-%d", constants.ClusterCollectorGroupPrefix, collectorset.Spec.GroupName, ordinal)
 		filter := fmt.Sprintf("collectorGroupId:%v,description:%v", groupID, name)
 		restResponse, apiResponse, err := client.GetCollectorList("", 1, 0, filter)
 		if _err := utilities.CheckAllErrors(restResponse, apiResponse, err); _err != nil {
