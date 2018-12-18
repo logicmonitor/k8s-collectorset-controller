@@ -16,7 +16,6 @@ package cmd
 
 import (
 	"context"
-
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/storage/inmem"
 
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/config"
@@ -44,6 +43,10 @@ to quickly create a Cobra application.`,
 			log.Fatalf("Failed to get config: %v", err)
 		}
 
+		if collectorsetconfig.Debug {
+			log.SetLevel(log.DebugLevel)
+		}
+
 		// TODO: storage.Storage should define a Chan() func.
 		countChan := make(chan int, 1)
 		// Instantiate the storage backend.
@@ -51,6 +54,7 @@ to quickly create a Cobra application.`,
 
 		// Instantiate the CollectorSet controller.
 		collectorsetcontroller, err := controller.New(collectorsetconfig, storage)
+
 		if err != nil {
 			log.Fatalf("Failed to create CollectorSet controller: %v", err)
 		}

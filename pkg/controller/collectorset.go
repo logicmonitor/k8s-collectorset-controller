@@ -21,11 +21,12 @@ import (
 // CreateOrUpdateCollectorSet creates a replicaset for each collector in
 // a CollectorSet
 func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient *lm.DefaultApi, client clientset.Interface) ([]int32, error) {
-	groupID, err := getCollectorGroupID(lmClient, constants.ClusterCollectorGroupPrefix+collectorset.Spec.GroupName)
+	groupName := constants.ClusterCollectorGroupPrefix + collectorset.Spec.GroupName
+	groupID, err := getCollectorGroupID(lmClient, groupName)
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("Collector group %q has ID %d", strings.Title(constants.ClusterCollectorGroupPrefix+collectorset.Spec.GroupName), groupID)
+	log.Infof("Collector group %q has ID %d", strings.Title(groupName), groupID)
 
 	ids, err := getCollectorIDs(lmClient, groupID, collectorset)
 	if err != nil {
@@ -201,11 +202,13 @@ func DeleteCollectorSet(collectorset *crv1alpha1.CollectorSet, client clientset.
 
 func getCollectorGroupID(client *lm.DefaultApi, name string) (int32, error) {
 	restResponse, apiResponse, err := client.GetCollectorGroupList("", 1, 0, "name:"+name)
+
 	if _err := utilities.CheckAllErrors(restResponse, apiResponse, err); _err != nil {
 		return -1, _err
 	}
+
 	if restResponse.Data.Total == 0 {
-		log.Printf("Adding collector group with name %q", name)
+		log.Infof("Adding collector group with name %q", name)
 		return addCollectorGroup(client, name)
 	}
 	if restResponse.Data.Total == 1 {
@@ -237,7 +240,7 @@ func getCollectorIDs(client *lm.DefaultApi, groupID int32, collectorset *crv1alp
 		}
 		var id int32
 		if restResponse.Data.Total == 0 {
-			log.Printf("Adding collector with description %q", name)
+			log.Infof("Adding collector with description %q", name)
 			collector := lm.RestCollector{
 				Description:                   name,
 				CollectorGroupId:              groupID,
