@@ -90,7 +90,7 @@ func (c *Controller) watch(ctx context.Context) error {
 
 func (c *Controller) addFunc(obj interface{}) {
 	collectorset := obj.(*crv1alpha1.CollectorSet)
-	log.Debugf("Start to create collectorset: %s", collectorset.Name)
+	log.Infof("Start to create collectorset: %s", collectorset.Name)
 
 	ids, err := CreateOrUpdateCollectorSet(collectorset, c.LogicmonitorClient, c.Clientset)
 	if err != nil {
@@ -99,7 +99,7 @@ func (c *Controller) addFunc(obj interface{}) {
 	}
 	log.Infof("CollectorSet %q has collectors %v", collectorset.Name, ids)
 
-	log.Debugf("Waiting for the collectors to register: %v", ids)
+	log.Infof("Waiting for the collectors to register: %v", ids)
 	if err = waitForCollectorsToRegister(c.LogicmonitorClient, ids); err != nil {
 		log.Errorf("Failed to verify that collectors %v are registered: %v", ids, err)
 		return
@@ -117,7 +117,7 @@ func (c *Controller) addFunc(obj interface{}) {
 		log.Errorf("Failed to save policy: %v", err)
 	}
 
-	log.Infof("Finish creating CollectorSet: %s", collectorsetCopy.Name)
+	log.Infof("Finished creating CollectorSet: %s", collectorsetCopy.Name)
 }
 
 // TODO: updating the collectorset ids in the add func will trigger this. We
@@ -139,7 +139,7 @@ func (c *Controller) updateFunc(oldObj, newObj interface{}) {
 		log.Errorf("Failed to update policy: %v", err)
 	}
 
-	log.Infof("Finish updating CollectorSet: %s", collectorsetCopy.Name)
+	log.Infof("Finished updating CollectorSet: %s", collectorsetCopy.Name)
 }
 
 func (c *Controller) deleteFunc(obj interface{}) {
@@ -155,7 +155,7 @@ func (c *Controller) deleteFunc(obj interface{}) {
 		log.Errorf("Failed to remove policy: %v", err)
 	}
 
-	log.Infof("Finish deleting CollectorSet: %s", collectorset.Name)
+	log.Infof("Finished deleting CollectorSet: %s", collectorset.Name)
 }
 
 // func (c *Controller) listCollectorSets() (*crv1alpha1.CollectorSetList, error) {

@@ -54,7 +54,6 @@ to quickly create a Cobra application.`,
 
 		// Instantiate the CollectorSet controller.
 		collectorsetcontroller, err := controller.New(collectorsetconfig, storage)
-
 		if err != nil {
 			log.Fatalf("Failed to create CollectorSet controller: %v", err)
 		}
