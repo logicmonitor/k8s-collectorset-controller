@@ -90,7 +90,7 @@ func (c *Controller) watch(ctx context.Context) error {
 
 func (c *Controller) addFunc(obj interface{}) {
 	collectorset := obj.(*crv1alpha1.CollectorSet)
-	log.Infof("Start to create collectorset: %s", collectorset.Name)
+	log.Infof("Starting to create collectorset: %s", collectorset.Name)
 
 	ids, err := CreateOrUpdateCollectorSet(collectorset, c.LogicmonitorClient, c.Clientset)
 	if err != nil {
@@ -126,7 +126,7 @@ func (c *Controller) updateFunc(oldObj, newObj interface{}) {
 	_ = oldObj.(*crv1alpha1.CollectorSet)
 	newcollectorset := newObj.(*crv1alpha1.CollectorSet)
 
-	log.Debugf("Start to update collectorset: %s", newcollectorset.Name)
+	log.Infof("Starting to update collectorset: %s", newcollectorset.Name)
 	_, err := CreateOrUpdateCollectorSet(newcollectorset, c.LogicmonitorClient, c.Clientset)
 	if err != nil {
 		log.Errorf("Failed to update collectorset: %v", err)
@@ -145,7 +145,7 @@ func (c *Controller) updateFunc(oldObj, newObj interface{}) {
 func (c *Controller) deleteFunc(obj interface{}) {
 	collectorset := obj.(*crv1alpha1.CollectorSet)
 
-	log.Debugf("Start to delete collectorset: %s", collectorset.Name)
+	log.Infof("Starting to delete collectorset: %s", collectorset.Name)
 	if err := DeleteCollectorSet(collectorset, c.Clientset); err != nil {
 		log.Errorf("Failed to delete collectorset: %v", err)
 		return
