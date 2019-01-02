@@ -254,8 +254,8 @@ func getCollectorIDs(client *lm.DefaultApi, groupID int32, collectorset *crv1alp
 			// update the escalating chain id, if failed the value will be the default value
 			// the default value of this option param is 0, which means disable notification
 			collector.EscalatingChainId = collectorset.Spec.EscalationChainID
-			restResponse, apiResponse, err := client.UpdateCollectorById(id, collector)
-			if _err := utilities.CheckAllErrors(restResponse, apiResponse, err); _err != nil {
+			updateResponse, apiResponse, err := client.UpdateCollectorById(id, collector)
+			if _err := utilities.CheckAllErrors(updateResponse, apiResponse, err); _err != nil {
 				log.Warnf("Failed to update the escalation chain id. The default value will be used. %v", _err)
 			}
 		} else {
