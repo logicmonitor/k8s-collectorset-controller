@@ -1,6 +1,6 @@
 NAMESPACE  := logicmonitor
 REPOSITORY := collectorset-controller
-VERSION    := 0.2.0-alpha.1
+VERSION    := 1.0.0
 
 all:
 	docker build --build-arg VERSION=$(VERSION) -t $(NAMESPACE)/$(REPOSITORY):latest .
