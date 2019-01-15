@@ -91,7 +91,7 @@ type RestCollector struct {
 
 	UserPermission string `json:"userPermission,omitempty"`
 
-	NeedAutoCreateCollectorDevice bool `json:"needAutoCreateCollectorDevice,omitempty"`
+	NeedAutoCreateCollectorDevice bool `json:"needAutoCreateCollectorDevice"`
 
 	WatchdogUpdatedOn int64 `json:"watchdogUpdatedOn,omitempty"`
 
