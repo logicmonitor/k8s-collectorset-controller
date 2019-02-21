@@ -166,17 +166,15 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 }
 
 func updateCollectors(client *lm.DefaultApi, collectorset *crv1alpha1.CollectorSet, ids []int32, groupID int32) error {
-	// force an even number of elements in the slice
-	even := len(ids)%2 != 0
-	if even {
-		ids = ids[:len(ids)-1]
+	// if there is only one collector, there will be no backup for it
+	if len(ids) < 2 {
+		return nil
 	}
 
 	for i := 0; i < len(ids); i++ {
-		// We are at the beginning of a pair
 		var backupAgentID int32
-		if i%2 == 0 {
-			backupAgentID = ids[i+1]
+		if i == 0 {
+			backupAgentID = ids[len(ids)-1]
 		} else {
 			backupAgentID = ids[i-1]
 		}
