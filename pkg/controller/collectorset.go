@@ -21,12 +21,16 @@ import (
 // CreateOrUpdateCollectorSet creates a replicaset for each collector in
 // a CollectorSet
 func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient *lm.DefaultApi, client clientset.Interface) ([]int32, error) {
-	groupName := constants.ClusterCollectorGroupPrefix + collectorset.Spec.GroupName
-	groupID, err := getCollectorGroupID(lmClient, groupName)
-	if err != nil {
-		return nil, err
+	groupID := collectorset.Spec.GroupID
+	if groupID == 0 || !checkCollectorGroupExistsByID(lmClient, groupID) {
+		groupName := constants.ClusterCollectorGroupPrefix + collectorset.Spec.ClusterName
+		newGroupID, err := getCollectorGroupID(lmClient, groupName)
+		if err != nil {
+			return nil, err
+		}
+		log.Infof("Adding collector group %q with ID %d", strings.Title(groupName), newGroupID)
+		groupID = newGroupID
 	}
-	log.Infof("Collector group %q has ID %d", strings.Title(groupName), groupID)
 
 	ids, err := getCollectorIDs(lmClient, groupID, collectorset)
 	if err != nil {
@@ -198,6 +202,15 @@ func DeleteCollectorSet(collectorset *crv1alpha1.CollectorSet, client clientset.
 	return client.AppsV1beta1().StatefulSets(collectorset.Namespace).Delete(collectorset.Name, &deleteOpts)
 }
 
+func checkCollectorGroupExistsByID(client *lm.DefaultApi, id int32) bool {
+	restResponse, apiResponse, err := client.GetCollectorGroupById(id, "id")
+	if _err := utilities.CheckAllErrors(restResponse, apiResponse, err); _err != nil {
+		log.Warnf("Failed to get collector group with id %d", id)
+		return false
+	}
+	return true
+}
+
 func getCollectorGroupID(client *lm.DefaultApi, name string) (int32, error) {
 	restResponse, apiResponse, err := client.GetCollectorGroupList("", 1, 0, "name:"+name)
 
@@ -212,7 +225,7 @@ func getCollectorGroupID(client *lm.DefaultApi, name string) (int32, error) {
 	if restResponse.Data.Total == 1 {
 		return restResponse.Data.Items[0].Id, err
 	}
-	return -1, fmt.Errorf("Failed to get collector group ID")
+	return -1, fmt.Errorf("failed to get collector group ID")
 }
 
 func addCollectorGroup(client *lm.DefaultApi, name string) (int32, error) {
@@ -230,7 +243,7 @@ func addCollectorGroup(client *lm.DefaultApi, name string) (int32, error) {
 func getCollectorIDs(client *lm.DefaultApi, groupID int32, collectorset *crv1alpha1.CollectorSet) ([]int32, error) {
 	var ids []int32
 	for ordinal := int32(0); ordinal < *collectorset.Spec.Replicas; ordinal++ {
-		name := fmt.Sprintf("%s%s-%d", constants.ClusterCollectorGroupPrefix, collectorset.Spec.GroupName, ordinal)
+		name := fmt.Sprintf("%s%s-%d", constants.ClusterCollectorGroupPrefix, collectorset.Spec.ClusterName, ordinal)
 		filter := fmt.Sprintf("collectorGroupId:%v,description:%v", groupID, name)
 		restResponse, apiResponse, err := client.GetCollectorList("", 1, 0, filter)
 		if _err := utilities.CheckAllErrors(restResponse, apiResponse, err); _err != nil {
@@ -299,7 +312,7 @@ func updateCollectorBackupAgent(client *lm.DefaultApi, id, backupID int32) error
 	// Get all the fields before updating to prevent setting default values to the other fields
 	restResponse, apiResponse, err := client.GetCollectorById(id, "")
 	if _err := utilities.CheckAllErrors(restResponse, apiResponse, err); _err != nil {
-		return fmt.Errorf("Failed to get the collector: %v", _err)
+		return fmt.Errorf("failed to get the collector: %v", _err)
 	}
 
 	collector := restResponse.Data
@@ -307,7 +320,7 @@ func updateCollectorBackupAgent(client *lm.DefaultApi, id, backupID int32) error
 	collector.BackupAgentId = backupID
 	rstRsp, apiRsp, updateErr := client.UpdateCollectorById(id, collector)
 	if _err := utilities.CheckAllErrors(rstRsp, apiRsp, updateErr); _err != nil {
-		return fmt.Errorf("Failed to update the collector: %v", _err)
+		return fmt.Errorf("failed to update the collector: %v", _err)
 	}
 	return nil
 }
