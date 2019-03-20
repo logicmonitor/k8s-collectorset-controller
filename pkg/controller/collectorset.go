@@ -162,14 +162,14 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 
 	collectorset.Status.IDs = ids
 
-	err = updateCollectors(lmClient, collectorset, ids, groupID)
+	err = updateCollectors(lmClient, ids)
 	if err != nil {
 		log.Warnf("Failed to set collector backup agents: %v", err)
 	}
 	return collectorset.Status.IDs, nil
 }
 
-func updateCollectors(client *lm.DefaultApi, collectorset *crv1alpha1.CollectorSet, ids []int32, groupID int32) error {
+func updateCollectors(client *lm.DefaultApi, ids []int32) error {
 	// if there is only one collector, there will be no backup for it
 	if len(ids) < 2 {
 		return nil
