@@ -36,8 +36,8 @@ WORKDIR $GOPATH/src/github.com/logicmonitor/k8s-collectorset-controller
 RUN go get -u github.com/alecthomas/gometalinter
 RUN gometalinter --install
 COPY --from=build $GOPATH/src/github.com/logicmonitor/k8s-collectorset-controller ./
-#RUN chmod +x ./scripts/test.sh; sync; ./scripts/test.sh
-#RUN cp coverage.txt /coverage.txt
+RUN chmod +x ./scripts/test.sh; sync; ./scripts/test.sh
+RUN cp coverage.txt /coverage.txt
 
 FROM alpine:3.6
 LABEL maintainer="Andrew Rynhard <andrew.rynhard@logicmonitor.com>"
@@ -48,7 +48,7 @@ WORKDIR /app
 COPY --from=api /go/src/github.com/logicmonitor/k8s-collectorset-controller/api/* /tmp/
 COPY --from=codegen /go/src/github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1/zz_generated.deepcopy.go /tmp/
 COPY --from=build /collectorset-controller /bin
-#COPY --from=test /coverage.txt /coverage.txt
+COPY --from=test /coverage.txt /coverage.txt
 
 ENTRYPOINT ["collectorset-controller"]
 CMD ["watch"]
