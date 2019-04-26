@@ -12,7 +12,7 @@ func TestRecoverError(t *testing.T) {
 }
 
 func run(t *testing.T) {
-	defer RecoverError()
+	defer RecoverError("test msg")
 	t.Logf("test run start...")
 	panic(fmt.Errorf("test panic"))
 	t.Logf("test run end...")

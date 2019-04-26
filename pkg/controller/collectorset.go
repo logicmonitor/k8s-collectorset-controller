@@ -24,6 +24,7 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 	groupID := collectorset.Spec.GroupID
 	if groupID == 0 || !checkCollectorGroupExistsByID(lmClient, groupID) {
 		groupName := constants.ClusterCollectorGroupPrefix + collectorset.Spec.ClusterName
+		log.Infof("Group name is %s", groupName)
 		newGroupID, err := getCollectorGroupID(lmClient, groupName)
 		if err != nil {
 			return nil, err

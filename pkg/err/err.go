@@ -4,8 +4,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func RecoverError() {
+func RecoverError(msg string) {
 	if err := recover(); err != nil {
-		log.Errorf("recover error: %s", err)
+		if msg != "" {
+			msg += ", "
+		}
+		log.Errorf("%srecover error: %s", msg, err)
 	}
 }
