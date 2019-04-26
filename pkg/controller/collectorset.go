@@ -281,6 +281,8 @@ func getCollectorIDs(client *lm.DefaultApi, groupID int32, collectorset *crv1alp
 func getResourceRequirements(size string) apiv1.ResourceRequirements {
 	resourceList := apiv1.ResourceList{}
 	var quantity *resource.Quantity
+	// DEV-50734 convert to lower
+	size = strings.ToLower(size)
 	switch size {
 	case "nano":
 		quantity = resource.NewQuantity(2*1024*1024*1024, resource.BinarySI)
