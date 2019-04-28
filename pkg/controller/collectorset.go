@@ -38,6 +38,9 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 	}
 
 	secretIsOptional := false
+	// DEV-50734 convert to lower
+	collectorSize := strings.ToLower(collectorset.Spec.Size)
+	log.Infof("Collector size lower string is %s", collectorSize)
 
 	statefulset := appsv1beta1.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
@@ -124,7 +127,7 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 								},
 								{
 									Name:  "collector_size",
-									Value: collectorset.Spec.Size,
+									Value: collectorSize,
 								},
 								{
 									Name:  "collector_version",
@@ -139,7 +142,7 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 									Value: strings.Trim(strings.Join(strings.Fields(fmt.Sprint(ids)), ","), "[]"),
 								},
 							},
-							Resources: getResourceRequirements(collectorset.Spec.Size),
+							Resources: getResourceRequirements(collectorSize),
 						},
 					},
 				},
@@ -281,8 +284,6 @@ func getCollectorIDs(client *lm.DefaultApi, groupID int32, collectorset *crv1alp
 func getResourceRequirements(size string) apiv1.ResourceRequirements {
 	resourceList := apiv1.ResourceList{}
 	var quantity *resource.Quantity
-	// DEV-50734 convert to lower
-	size = strings.ToLower(size)
 	switch size {
 	case "nano":
 		quantity = resource.NewQuantity(2*1024*1024*1024, resource.BinarySI)
