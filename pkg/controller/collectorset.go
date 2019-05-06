@@ -2,12 +2,13 @@ package controller
 
 import (
 	"fmt"
+	"github.com/logicmonitor/lm-sdk-go/client"
+	"github.com/logicmonitor/lm-sdk-go/client/lm"
+	"github.com/logicmonitor/lm-sdk-go/models"
 	"strings"
 
 	crv1alpha1 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1"
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/constants"
-	"github.com/logicmonitor/k8s-collectorset-controller/pkg/utilities"
-	lm "github.com/logicmonitor/lm-sdk-go"
 	log "github.com/sirupsen/logrus"
 	appsv1beta1 "k8s.io/api/apps/v1beta1"
 	apiv1 "k8s.io/api/core/v1"
@@ -20,7 +21,7 @@ import (
 
 // CreateOrUpdateCollectorSet creates a replicaset for each collector in
 // a CollectorSet
-func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient *lm.DefaultApi, client clientset.Interface) ([]int32, error) {
+func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient *client.LMSdkGo, client clientset.Interface) ([]int32, error) {
 	groupID := collectorset.Spec.GroupID
 	if groupID == 0 || !checkCollectorGroupExistsByID(lmClient, groupID) {
 		groupName := constants.ClusterCollectorGroupPrefix + collectorset.Spec.ClusterName
@@ -169,7 +170,7 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 	return collectorset.Status.IDs, nil
 }
 
-func updateCollectors(client *lm.DefaultApi, ids []int32) error {
+func updateCollectors(client *client.LMSdkGo, ids []int32) error {
 	// if there is only one collector, there will be no backup for it
 	if len(ids) < 2 {
 		return nil
@@ -202,75 +203,92 @@ func DeleteCollectorSet(collectorset *crv1alpha1.CollectorSet, client clientset.
 	return client.AppsV1beta1().StatefulSets(collectorset.Namespace).Delete(collectorset.Name, &deleteOpts)
 }
 
-func checkCollectorGroupExistsByID(client *lm.DefaultApi, id int32) bool {
-	restResponse, apiResponse, err := client.GetCollectorGroupById(id, "id")
-	if _err := utilities.CheckAllErrors(restResponse, apiResponse, err); _err != nil {
+func checkCollectorGroupExistsByID(client *client.LMSdkGo, id int32) bool {
+	params := lm.NewGetCollectorGroupByIDParams()
+	params.SetID(id)
+	fields := "id"
+	params.SetFields(&fields)
+	restResponse, err := client.LM.GetCollectorGroupByID(params)
+	if err != nil || restResponse.Payload == nil {
 		log.Warnf("Failed to get collector group with id %d", id)
 		return false
 	}
 	return true
 }
 
-func getCollectorGroupID(client *lm.DefaultApi, name string) (int32, error) {
-	restResponse, apiResponse, err := client.GetCollectorGroupList("", 1, 0, "name:"+name)
-
-	if _err := utilities.CheckAllErrors(restResponse, apiResponse, err); _err != nil {
-		return -1, _err
+func getCollectorGroupID(client *client.LMSdkGo, name string) (int32, error) {
+	params := lm.NewGetCollectorGroupListParams()
+	filter := fmt.Sprintf("name:\"%s\"", name)
+	params.SetFilter(&filter)
+	restResponse, err := client.LM.GetCollectorGroupList(params)
+	if err != nil {
+		return -1, err
 	}
 
-	if restResponse.Data.Total == 0 {
+	if restResponse.Payload == nil || restResponse.Payload.Total == 0 {
 		log.Infof("Adding collector group with name %q", name)
 		return addCollectorGroup(client, name)
 	}
-	if restResponse.Data.Total == 1 {
-		return restResponse.Data.Items[0].Id, err
+	if restResponse.Payload.Total == 1 {
+		return restResponse.Payload.Items[0].ID, err
 	}
 	return -1, fmt.Errorf("failed to get collector group ID")
 }
 
-func addCollectorGroup(client *lm.DefaultApi, name string) (int32, error) {
-	group := lm.RestCollectorGroup{
-		Name: name,
+func addCollectorGroup(client *client.LMSdkGo, name string) (int32, error) {
+	body := &models.CollectorGroup{
+		Name: &name,
 	}
-	restResponse, apiResponse, err := client.AddCollectorGroup(group)
-	if _err := utilities.CheckAllErrors(restResponse, apiResponse, err); _err != nil {
-		return -1, _err
+	params := lm.NewAddCollectorGroupParams()
+	params.SetBody(body)
+	restResponse, err := client.LM.AddCollectorGroup(params)
+	if err != nil {
+		return -1, err
 	}
-	return restResponse.Data.Id, nil
+	return restResponse.Payload.ID, nil
 }
 
 // $(statefulset name)-$(ordinal)
-func getCollectorIDs(client *lm.DefaultApi, groupID int32, collectorset *crv1alpha1.CollectorSet) ([]int32, error) {
+func getCollectorIDs(client *client.LMSdkGo, groupID int32, collectorset *crv1alpha1.CollectorSet) ([]int32, error) {
 	var ids []int32
 	for ordinal := int32(0); ordinal < *collectorset.Spec.Replicas; ordinal++ {
 		name := fmt.Sprintf("%s%s-%d", constants.ClusterCollectorGroupPrefix, collectorset.Spec.ClusterName, ordinal)
-		filter := fmt.Sprintf("collectorGroupId:%v,description:%v", groupID, name)
-		restResponse, apiResponse, err := client.GetCollectorList("", 1, 0, filter)
-		if _err := utilities.CheckAllErrors(restResponse, apiResponse, err); _err != nil {
-			return nil, _err
+		filter := fmt.Sprintf("collectorGroupId:%v,description:\"%v\"", groupID, name)
+		params := lm.NewGetCollectorListParams()
+		params.SetFilter(&filter)
+		restResponse, err := client.LM.GetCollectorList(params)
+		if err != nil {
+			return nil, err
 		}
 		var id int32
-		if restResponse.Data.Total == 0 {
+		if restResponse.Payload == nil || restResponse.Payload.Total == 0 {
 			log.Infof("Adding collector with description %q", name)
-			collector := lm.RestCollector{
+			body := &models.Collector{
 				Description:                   name,
-				CollectorGroupId:              groupID,
+				CollectorGroupID:              groupID,
 				NeedAutoCreateCollectorDevice: false,
 			}
-			id, err = addCollector(client, collector)
+			id, err = addCollector(client, body)
 			if err != nil {
 				return nil, err
 			}
 
 			// update the escalating chain id, if failed the value will be the default value
 			// the default value of this option param is 0, which means disable notification
-			collector.EscalatingChainId = collectorset.Spec.EscalationChainID
-			updateResponse, apiResponse, err := client.UpdateCollectorById(id, collector)
-			if _err := utilities.CheckAllErrors(updateResponse, apiResponse, err); _err != nil {
-				log.Warnf("Failed to update the escalation chain id. The default value will be used. %v", _err)
+			collector, err := getCollectorById(client, id)
+			if err != nil || collector == nil {
+				log.Warnf("Failed to get the collector, err: %v", err)
+				collector = body
+				collector.ID = id
+			}
+
+			collector.EscalatingChainID = collectorset.Spec.EscalationChainID
+			_, err = updateCollector(client, collector)
+			if err != nil {
+				log.Warnf("Failed to update the escalation chain id. The default value will be used. %v", err)
 			}
 		} else {
-			id = restResponse.Data.Items[0].Id
+			id = restResponse.Payload.Items[0].ID
 		}
 		ids = append(ids, id)
 	}
@@ -300,27 +318,50 @@ func getResourceRequirements(size string) apiv1.ResourceRequirements {
 	}
 }
 
-func addCollector(client *lm.DefaultApi, collector lm.RestCollector) (int32, error) {
-	restResponse, apiResponse, err := client.AddCollector(collector)
-	if _err := utilities.CheckAllErrors(restResponse, apiResponse, err); _err != nil {
-		return -1, _err
+func addCollector(client *client.LMSdkGo, body *models.Collector) (int32, error) {
+	params := lm.NewAddCollectorParams()
+	params.SetBody(body)
+	restResponse, err := client.LM.AddCollector(params)
+	if err != nil {
+		return -1, err
 	}
-	return restResponse.Data.Id, nil
+	return restResponse.Payload.ID, nil
 }
 
-func updateCollectorBackupAgent(client *lm.DefaultApi, id, backupID int32) error {
+func getCollectorById(client *client.LMSdkGo, id int32) (*models.Collector, error) {
+	params := lm.NewGetCollectorByIDParams()
+	params.SetID(id)
+	restResponse, err := client.LM.GetCollectorByID(params)
+	if err != nil {
+		return nil, err
+	}
+	return restResponse.Payload, nil
+}
+
+func updateCollector(client *client.LMSdkGo, body *models.Collector) (*models.Collector, error) {
+	params := lm.NewUpdateCollectorByIDParams()
+	params.SetBody(body)
+	params.SetID(body.ID)
+	restResponse, err := client.LM.UpdateCollectorByID(params)
+	if err != nil {
+		return nil, err
+	}
+	return restResponse.Payload, nil
+}
+
+func updateCollectorBackupAgent(client *client.LMSdkGo, id, backupID int32) error {
 	// Get all the fields before updating to prevent setting default values to the other fields
-	restResponse, apiResponse, err := client.GetCollectorById(id, "")
-	if _err := utilities.CheckAllErrors(restResponse, apiResponse, err); _err != nil {
-		return fmt.Errorf("failed to get the collector: %v", _err)
+	restResponse, err := getCollectorById(client, id)
+	if err != nil || restResponse == nil {
+		return fmt.Errorf("failed to get the collector: %v", err)
 	}
 
-	collector := restResponse.Data
+	collector := restResponse
 	collector.EnableFailBack = true
-	collector.BackupAgentId = backupID
-	rstRsp, apiRsp, updateErr := client.UpdateCollectorById(id, collector)
-	if _err := utilities.CheckAllErrors(rstRsp, apiRsp, updateErr); _err != nil {
-		return fmt.Errorf("failed to update the collector: %v", _err)
+	collector.BackupAgentID = backupID
+	_, updateErr := updateCollector(client, collector)
+	if updateErr != nil {
+		return fmt.Errorf("failed to update the collector: %v", updateErr)
 	}
 	return nil
 }

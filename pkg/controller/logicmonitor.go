@@ -1,19 +1,15 @@
 package controller
 
-import lm "github.com/logicmonitor/lm-sdk-go"
+import (
+	"github.com/logicmonitor/lm-sdk-go/client"
+)
 
-func newLMClient(id, key, company string) *lm.DefaultApi {
-	config := lm.NewConfiguration()
-	config.APIKey = map[string]map[string]string{
-		"Authorization": {
-			"AccessID":  id,
-			"AccessKey": key,
-		},
-	}
-	config.BasePath = "https://" + company + ".logicmonitor.com/santaba/rest"
-
-	api := lm.NewDefaultApi()
-	api.Configuration = config
-
+func newLMClient(id, key, company string) *client.LMSdkGo {
+	config := client.NewConfig()
+	config.SetAccessID(&id)
+	config.SetAccessKey(&key)
+	domain := company + ".logicmonitor.com"
+	config.SetAccountDomain(&domain)
+	api := client.New(config)
 	return api
 }
