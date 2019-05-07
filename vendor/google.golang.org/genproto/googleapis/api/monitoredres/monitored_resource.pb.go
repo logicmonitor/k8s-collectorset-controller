@@ -62,7 +62,7 @@ func (m *MonitoredResourceDescriptor) Reset()         { *m = MonitoredResourceDe
 func (m *MonitoredResourceDescriptor) String() string { return proto.CompactTextString(m) }
 func (*MonitoredResourceDescriptor) ProtoMessage()    {}
 func (*MonitoredResourceDescriptor) Descriptor() ([]byte, []int) {
-	return fileDescriptor_monitored_resource_35ee91132be0d9ce, []int{0}
+	return fileDescriptor_monitored_resource_90111f8aabf551aa, []int{0}
 }
 func (m *MonitoredResourceDescriptor) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MonitoredResourceDescriptor.Unmarshal(m, b)
@@ -148,7 +148,7 @@ func (m *MonitoredResource) Reset()         { *m = MonitoredResource{} }
 func (m *MonitoredResource) String() string { return proto.CompactTextString(m) }
 func (*MonitoredResource) ProtoMessage()    {}
 func (*MonitoredResource) Descriptor() ([]byte, []int) {
-	return fileDescriptor_monitored_resource_35ee91132be0d9ce, []int{1}
+	return fileDescriptor_monitored_resource_90111f8aabf551aa, []int{1}
 }
 func (m *MonitoredResource) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MonitoredResource.Unmarshal(m, b)
@@ -185,14 +185,13 @@ func (m *MonitoredResource) GetLabels() map[string]string {
 // Auxiliary metadata for a [MonitoredResource][google.api.MonitoredResource] object.
 // [MonitoredResource][google.api.MonitoredResource] objects contain the minimum set of information to
 // uniquely identify a monitored resource instance. There is some other useful
-// auxiliary metadata. Google Stackdriver Monitoring & Logging uses an ingestion
-// pipeline to extract metadata for cloud resources of all types , and stores
+// auxiliary metadata. Monitoring and Logging use an ingestion
+// pipeline to extract metadata for cloud resources of all types, and store
 // the metadata in this message.
 type MonitoredResourceMetadata struct {
 	// Output only. Values for predefined system metadata labels.
-	// System labels are a kind of metadata extracted by Google Stackdriver.
-	// Stackdriver determines what system labels are useful and how to obtain
-	// their values. Some examples: "machine_image", "vpc", "subnet_id",
+	// System labels are a kind of metadata extracted by Google, including
+	// "machine_image", "vpc", "subnet_id",
 	// "security_group", "name", etc.
 	// System label values can be only strings, Boolean values, or a list of
 	// strings. For example:
@@ -212,7 +211,7 @@ func (m *MonitoredResourceMetadata) Reset()         { *m = MonitoredResourceMeta
 func (m *MonitoredResourceMetadata) String() string { return proto.CompactTextString(m) }
 func (*MonitoredResourceMetadata) ProtoMessage()    {}
 func (*MonitoredResourceMetadata) Descriptor() ([]byte, []int) {
-	return fileDescriptor_monitored_resource_35ee91132be0d9ce, []int{2}
+	return fileDescriptor_monitored_resource_90111f8aabf551aa, []int{2}
 }
 func (m *MonitoredResourceMetadata) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MonitoredResourceMetadata.Unmarshal(m, b)
@@ -255,10 +254,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("google/api/monitored_resource.proto", fileDescriptor_monitored_resource_35ee91132be0d9ce)
+	proto.RegisterFile("google/api/monitored_resource.proto", fileDescriptor_monitored_resource_90111f8aabf551aa)
 }
 
-var fileDescriptor_monitored_resource_35ee91132be0d9ce = []byte{
+var fileDescriptor_monitored_resource_90111f8aabf551aa = []byte{
 	// 415 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x53, 0x4d, 0xab, 0xd3, 0x40,
 	0x14, 0x65, 0xd2, 0x0f, 0xf0, 0xa6, 0x7e, 0x0d, 0x52, 0x63, 0xea, 0xa2, 0xd6, 0x4d, 0xdd, 0x24,

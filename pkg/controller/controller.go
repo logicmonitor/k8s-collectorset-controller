@@ -3,6 +3,8 @@ package controller
 import (
 	"context"
 	"fmt"
+	"github.com/logicmonitor/lm-sdk-go/client"
+	"github.com/logicmonitor/lm-sdk-go/client/lm"
 	"time"
 
 	crv1alpha1 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1"
@@ -12,8 +14,6 @@ import (
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/distributor/roundrobin"
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/policy"
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/storage"
-	"github.com/logicmonitor/k8s-collectorset-controller/pkg/utilities"
-	lm "github.com/logicmonitor/lm-sdk-go"
 	log "github.com/sirupsen/logrus"
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -27,7 +27,7 @@ import (
 type Controller struct {
 	*collectorsetclient.Client
 	CollectorSetScheme *runtime.Scheme
-	LogicmonitorClient *lm.DefaultApi
+	LogicmonitorClient *client.LMSdkGo
 	Storage            storage.Storage
 }
 
@@ -193,15 +193,18 @@ func (c *Controller) updateCollectorSetStatus(collectorset *crv1alpha1.Collector
 	return collectorsetCopy, nil
 }
 
-func checkCollectorRegistrationStatus(lmClient *lm.DefaultApi, ids []int32) (bool, error) {
+func checkCollectorRegistrationStatus(lmClient *client.LMSdkGo, ids []int32) (bool, error) {
 	total := len(ids)
 	ready := 0
 	for _, id := range ids {
-		restResponse, apiResponse, err := lmClient.GetCollectorById(id, "")
-		if _err := utilities.CheckAllErrors(restResponse, apiResponse, err); _err != nil {
-			return false, fmt.Errorf("Failed to get collector: %v", _err)
+		params := lm.NewGetCollectorByIDParams()
+		params.SetID(id)
+		restResponse, err := lmClient.LM.GetCollectorByID(params)
+		if err != nil {
+			return false, fmt.Errorf("Failed to get collector: %v", err)
 		}
-		if restResponse.Data.Status != 0 {
+		collector := restResponse.Payload
+		if collector != nil && collector.Status != 0 {
 			ready++
 		}
 	}
@@ -212,7 +215,7 @@ func checkCollectorRegistrationStatus(lmClient *lm.DefaultApi, ids []int32) (boo
 	return false, nil
 }
 
-func waitForCollectorsToRegister(lmClient *lm.DefaultApi, ids []int32) error {
+func waitForCollectorsToRegister(lmClient *client.LMSdkGo, ids []int32) error {
 	// A collector generates a UUID upon startup, and if the collector
 	// container dies and comes back up on a new node, the UUID will be
 	// generated again. This causes the backend to think that there are
