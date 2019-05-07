@@ -3,8 +3,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"github.com/logicmonitor/lm-sdk-go/client"
-	"github.com/logicmonitor/lm-sdk-go/client/lm"
 	"time"
 
 	crv1alpha1 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1"
@@ -14,6 +12,8 @@ import (
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/distributor/roundrobin"
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/policy"
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/storage"
+	"github.com/logicmonitor/lm-sdk-go/client"
+	"github.com/logicmonitor/lm-sdk-go/client/lm"
 	log "github.com/sirupsen/logrus"
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"

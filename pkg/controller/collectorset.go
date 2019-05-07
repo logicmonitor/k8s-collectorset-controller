@@ -2,13 +2,13 @@ package controller
 
 import (
 	"fmt"
-	"github.com/logicmonitor/lm-sdk-go/client"
-	"github.com/logicmonitor/lm-sdk-go/client/lm"
-	"github.com/logicmonitor/lm-sdk-go/models"
 	"strings"
 
 	crv1alpha1 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1"
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/constants"
+	"github.com/logicmonitor/lm-sdk-go/client"
+	"github.com/logicmonitor/lm-sdk-go/client/lm"
+	"github.com/logicmonitor/lm-sdk-go/models"
 	log "github.com/sirupsen/logrus"
 	appsv1beta1 "k8s.io/api/apps/v1beta1"
 	apiv1 "k8s.io/api/core/v1"
@@ -275,7 +275,7 @@ func getCollectorIDs(client *client.LMSdkGo, groupID int32, collectorset *crv1al
 
 			// update the escalating chain id, if failed the value will be the default value
 			// the default value of this option param is 0, which means disable notification
-			collector, err := getCollectorById(client, id)
+			collector, err := getCollectorByID(client, id)
 			if err != nil || collector == nil {
 				log.Warnf("Failed to get the collector, err: %v", err)
 				collector = body
@@ -328,7 +328,7 @@ func addCollector(client *client.LMSdkGo, body *models.Collector) (int32, error)
 	return restResponse.Payload.ID, nil
 }
 
-func getCollectorById(client *client.LMSdkGo, id int32) (*models.Collector, error) {
+func getCollectorByID(client *client.LMSdkGo, id int32) (*models.Collector, error) {
 	params := lm.NewGetCollectorByIDParams()
 	params.SetID(id)
 	restResponse, err := client.LM.GetCollectorByID(params)
@@ -351,7 +351,7 @@ func updateCollector(client *client.LMSdkGo, body *models.Collector) (*models.Co
 
 func updateCollectorBackupAgent(client *client.LMSdkGo, id, backupID int32) error {
 	// Get all the fields before updating to prevent setting default values to the other fields
-	restResponse, err := getCollectorById(client, id)
+	restResponse, err := getCollectorByID(client, id)
 	if err != nil || restResponse == nil {
 		return fmt.Errorf("failed to get the collector: %v", err)
 	}
