@@ -90,7 +90,7 @@ func (c *Controller) watch(ctx context.Context) error {
 }
 
 func (c *Controller) addFunc(obj interface{}) {
-	defer err.RecoverError("create collectorset")
+	defer err.RecoverError("Create collectorset")
 	collectorset := obj.(*crv1alpha1.CollectorSet)
 	log.Infof("Starting to create collectorset: %s", collectorset.Name)
 
@@ -125,7 +125,7 @@ func (c *Controller) addFunc(obj interface{}) {
 // TODO: updating the collectorset ids in the add func will trigger this. We
 // need to check for this case
 func (c *Controller) updateFunc(oldObj, newObj interface{}) {
-	defer err.RecoverError("update collectorset")
+	defer err.RecoverError("Update collectorset")
 	_ = oldObj.(*crv1alpha1.CollectorSet)
 	newcollectorset := newObj.(*crv1alpha1.CollectorSet)
 
@@ -146,7 +146,7 @@ func (c *Controller) updateFunc(oldObj, newObj interface{}) {
 }
 
 func (c *Controller) deleteFunc(obj interface{}) {
-	defer err.RecoverError("delete collectorset")
+	defer err.RecoverError("Delete collectorset")
 	collectorset := obj.(*crv1alpha1.CollectorSet)
 
 	log.Infof("Starting to delete collectorset: %s", collectorset.Name)
