@@ -40,7 +40,7 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 	secretIsOptional := false
 	// DEV-50734 convert to lower
 	collectorSize := strings.ToLower(collectorset.Spec.Size)
-	log.Infof("Collector size lower string is %s", collectorSize)
+	log.Infof("Collector size is %s", collectorSize)
 
 	statefulset := appsv1beta1.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
