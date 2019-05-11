@@ -1,18 +1,18 @@
 package err
 
 import (
+	"fmt"
 	"testing"
 )
 
 func TestRecoverError(t *testing.T) {
-	run(t)
-	t.Logf("Test success")
+	run()
+	fmt.Println("Complete test")
 
 }
 
-func run(t *testing.T) {
-	defer RecoverError("Test msg")
-	t.Logf("Test run start...")
+func run() {
+	defer RecoverError("Test")
+	fmt.Println("Start to run")
 	panic("Test panic")
-	t.Logf("Test run end...")
 }
