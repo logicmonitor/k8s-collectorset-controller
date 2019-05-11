@@ -26,7 +26,8 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 	if groupID == 0 || !checkCollectorGroupExistsByID(lmClient, groupID) {
 		groupName := constants.ClusterCollectorGroupPrefix + collectorset.Spec.ClusterName
 		log.Infof("Group name is %s", groupName)
-		newGroupID, err := getCollectorGroupID(lmClient, groupName)
+
+		newGroupID, err := getCollectorGroupID(lmClient, groupName, collectorset)
 		if err != nil {
 			return nil, err
 		}
@@ -220,7 +221,7 @@ func checkCollectorGroupExistsByID(client *client.LMSdkGo, id int32) bool {
 	return true
 }
 
-func getCollectorGroupID(client *client.LMSdkGo, name string) (int32, error) {
+func getCollectorGroupID(client *client.LMSdkGo, name string, collectorset *crv1alpha1.CollectorSet) (int32, error) {
 	params := lm.NewGetCollectorGroupListParams()
 	filter := fmt.Sprintf("name:\"%s\"", name)
 	params.SetFilter(&filter)
@@ -231,7 +232,7 @@ func getCollectorGroupID(client *client.LMSdkGo, name string) (int32, error) {
 
 	if restResponse.Payload == nil || restResponse.Payload.Total == 0 {
 		log.Infof("Adding collector group with name %q", name)
-		return addCollectorGroup(client, name)
+		return addCollectorGroup(client, name, collectorset)
 	}
 	if restResponse.Payload.Total == 1 {
 		return restResponse.Payload.Items[0].ID, err
@@ -239,9 +240,20 @@ func getCollectorGroupID(client *client.LMSdkGo, name string) (int32, error) {
 	return -1, fmt.Errorf("failed to get collector group ID")
 }
 
-func addCollectorGroup(client *client.LMSdkGo, name string) (int32, error) {
+func addCollectorGroup(client *client.LMSdkGo, name string, collectorset *crv1alpha1.CollectorSet) (int32, error) {
+
+	kubernetesLabelApp := constants.CustomPropertyKubernetesLabelApp
+	kubernetesLabelAppValue := constants.CustomPropertyKubernetesLabelAppValue
+	autoClusterName := constants.CustomPropertyAutoClusterName
+	AutoClusterNameValue := collectorset.Spec.ClusterName
+	customProperties := []*models.NameAndValue{
+		{Name: &kubernetesLabelApp, Value: &kubernetesLabelAppValue},
+		{Name: &autoClusterName, Value: &AutoClusterNameValue},
+	}
+
 	body := &models.CollectorGroup{
-		Name: &name,
+		Name:             &name,
+		CustomProperties: customProperties,
 	}
 	params := lm.NewAddCollectorGroupParams()
 	params.SetBody(body)
@@ -267,10 +279,20 @@ func getCollectorIDs(client *client.LMSdkGo, groupID int32, collectorset *crv1al
 		var id int32
 		if restResponse.Payload == nil || restResponse.Payload.Total == 0 {
 			log.Infof("Adding collector with description %q", name)
+			kubernetesLabelApp := constants.CustomPropertyKubernetesLabelApp
+			kubernetesLabelAppValue := constants.CustomPropertyKubernetesLabelAppValue
+			autoClusterName := constants.CustomPropertyAutoClusterName
+			AutoClusterNameValue := collectorset.Spec.ClusterName
+			customProperties := []*models.NameAndValue{
+				{Name: &kubernetesLabelApp, Value: &kubernetesLabelAppValue},
+				{Name: &autoClusterName, Value: &AutoClusterNameValue},
+			}
+
 			body := &models.Collector{
 				Description:                   name,
 				CollectorGroupID:              groupID,
 				NeedAutoCreateCollectorDevice: false,
+				CustomProperties:              customProperties,
 			}
 			id, err = addCollector(client, body)
 			if err != nil {

@@ -31,4 +31,10 @@ const (
 const (
 	// ClusterCollectorGroupPrefix is the prefix for the collector group of the cluster
 	ClusterCollectorGroupPrefix = "Kubernetes Cluster: "
+	// CustomPropertyKubernetesLabelApp is the custom property for the collector group and collector of the cluster
+	CustomPropertyKubernetesLabelApp = "kubernetes.label.app"
+	// CustomPropertyKubernetesLabelAppValue is the custom property value for the collector group and collector of the cluster
+	CustomPropertyKubernetesLabelAppValue = "argus"
+	// CustomPropertyAutoClusterName is the custom property for the collector group and collector of the cluster
+	CustomPropertyAutoClusterName = "auto.clustername"
 )
