@@ -3,8 +3,9 @@ package controller
 import (
 	"context"
 	"fmt"
-	"github.com/logicmonitor/k8s-collectorset-controller/pkg/err"
 	"time"
+
+	"github.com/logicmonitor/k8s-collectorset-controller/pkg/err"
 
 	crv1alpha1 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1"
 	collectorsetclient "github.com/logicmonitor/k8s-collectorset-controller/pkg/client"

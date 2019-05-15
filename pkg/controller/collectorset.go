@@ -309,7 +309,7 @@ func getCollectorIDs(client *client.LMSdkGo, groupID int32, collectorset *crv1al
 			}
 
 			collector.EscalatingChainID = collectorset.Spec.EscalationChainID
-			_, err = updateCollector(client, collector)
+			err = updateCollector(client, collector)
 			if err != nil {
 				log.Warnf("Failed to update the escalation chain id. The default value will be used. %v", err)
 			}
@@ -364,15 +364,15 @@ func getCollectorByID(client *client.LMSdkGo, id int32) (*models.Collector, erro
 	return restResponse.Payload, nil
 }
 
-func updateCollector(client *client.LMSdkGo, body *models.Collector) (*models.Collector, error) {
+func updateCollector(client *client.LMSdkGo, body *models.Collector) error {
 	params := lm.NewUpdateCollectorByIDParams()
 	params.SetBody(body)
 	params.SetID(body.ID)
-	restResponse, err := client.LM.UpdateCollectorByID(params)
+	_, err := client.LM.UpdateCollectorByID(params)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return restResponse.Payload, nil
+	return nil
 }
 
 func updateCollectorBackupAgent(client *client.LMSdkGo, id, backupID int32) error {
@@ -385,7 +385,7 @@ func updateCollectorBackupAgent(client *client.LMSdkGo, id, backupID int32) erro
 	collector := restResponse
 	collector.EnableFailBack = true
 	collector.BackupAgentID = backupID
-	_, updateErr := updateCollector(client, collector)
+	updateErr := updateCollector(client, collector)
 	if updateErr != nil {
 		return fmt.Errorf("failed to update the collector: %v", updateErr)
 	}
