@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/logicmonitor/k8s-collectorset-controller/pkg/config"
+
 	crv1alpha1 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1"
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/constants"
 	"github.com/logicmonitor/lm-sdk-go/client"
@@ -21,7 +23,7 @@ import (
 
 // CreateOrUpdateCollectorSet creates a replicaset for each collector in
 // a CollectorSet
-func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient *client.LMSdkGo, client clientset.Interface) ([]int32, error) {
+func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient *client.LMSdkGo, client clientset.Interface, collectorsetConfig *config.Config) ([]int32, error) {
 	groupID := collectorset.Spec.GroupID
 	if groupID == 0 || !checkCollectorGroupExistsByID(lmClient, groupID) {
 		groupName := constants.ClusterCollectorGroupPrefix + collectorset.Spec.ClusterName
@@ -122,6 +124,10 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 											Optional: &secretIsOptional,
 										},
 									},
+								},
+								{
+									Name:  "proxy_url",
+									Value: collectorsetConfig.ProxyURL,
 								},
 								{
 									Name:  "kubernetes",

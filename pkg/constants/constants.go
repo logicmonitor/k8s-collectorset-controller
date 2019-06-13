@@ -11,6 +11,8 @@ const (
 )
 
 const (
+	// ConfigPath is the path used to read the config.yaml file from.
+	ConfigPath = "/etc/collectorset-controller/config.yaml"
 	// AccessID is the environment variable name to lookup for the LogicMonitor access ID.
 	AccessID = "ARGUS_ACCESS_ID"
 	// AccessKey is the environment variable name to lookup for the LogicMonitor access key.
