@@ -21,7 +21,7 @@ import (
 
 // CreateOrUpdateCollectorSet creates a replicaset for each collector in
 // a CollectorSet
-func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient *client.LMSdkGo, client clientset.Interface, useHTTPProxy bool) ([]int32, error) {
+func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient *client.LMSdkGo, client clientset.Interface) ([]int32, error) {
 	groupID := collectorset.Spec.GroupID
 	if groupID == 0 || !checkCollectorGroupExistsByID(lmClient, groupID) {
 		groupName := constants.ClusterCollectorGroupPrefix + collectorset.Spec.ClusterName
@@ -41,6 +41,7 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 	}
 
 	secretIsOptional := false
+	secretIsOptionalTrue := true
 	collectorSize := strings.ToLower(collectorset.Spec.Size)
 	log.Infof("Collector size is %s", collectorSize)
 
@@ -124,6 +125,54 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 									},
 								},
 								{
+									Name: "proxy_host",
+									ValueFrom: &apiv1.EnvVarSource{
+										SecretKeyRef: &apiv1.SecretKeySelector{
+											LocalObjectReference: apiv1.LocalObjectReference{
+												Name: constants.CollectorsetControllerSecretName,
+											},
+											Key:      "proxyHost",
+											Optional: &secretIsOptionalTrue,
+										},
+									},
+								},
+								{
+									Name: "proxy_port",
+									ValueFrom: &apiv1.EnvVarSource{
+										SecretKeyRef: &apiv1.SecretKeySelector{
+											LocalObjectReference: apiv1.LocalObjectReference{
+												Name: constants.CollectorsetControllerSecretName,
+											},
+											Key:      "proxyPort",
+											Optional: &secretIsOptionalTrue,
+										},
+									},
+								},
+								{
+									Name: "proxy_user",
+									ValueFrom: &apiv1.EnvVarSource{
+										SecretKeyRef: &apiv1.SecretKeySelector{
+											LocalObjectReference: apiv1.LocalObjectReference{
+												Name: constants.CollectorsetControllerSecretName,
+											},
+											Key:      "proxyUser",
+											Optional: &secretIsOptionalTrue,
+										},
+									},
+								},
+								{
+									Name: "proxy_pass",
+									ValueFrom: &apiv1.EnvVarSource{
+										SecretKeyRef: &apiv1.SecretKeySelector{
+											LocalObjectReference: apiv1.LocalObjectReference{
+												Name: constants.CollectorsetControllerSecretName,
+											},
+											Key:      "proxyPass",
+											Optional: &secretIsOptionalTrue,
+										},
+									},
+								},
+								{
 									Name:  "kubernetes",
 									Value: "true",
 								},
@@ -154,60 +203,6 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 			},
 			PodManagementPolicy: appsv1beta1.ParallelPodManagement,
 		},
-	}
-
-	if useHTTPProxy {
-		container := statefulset.Spec.Template.Spec.Containers[0]
-		container.Env = append(container.Env, []apiv1.EnvVar{
-			{
-				Name: "proxy_host",
-				ValueFrom: &apiv1.EnvVarSource{
-					SecretKeyRef: &apiv1.SecretKeySelector{
-						LocalObjectReference: apiv1.LocalObjectReference{
-							Name: constants.CollectorsetControllerSecretName,
-						},
-						Key:      "proxyHost",
-						Optional: &secretIsOptional,
-					},
-				},
-			},
-			{
-				Name: "proxy_port",
-				ValueFrom: &apiv1.EnvVarSource{
-					SecretKeyRef: &apiv1.SecretKeySelector{
-						LocalObjectReference: apiv1.LocalObjectReference{
-							Name: constants.CollectorsetControllerSecretName,
-						},
-						Key:      "proxyPort",
-						Optional: &secretIsOptional,
-					},
-				},
-			},
-			{
-				Name: "proxy_user",
-				ValueFrom: &apiv1.EnvVarSource{
-					SecretKeyRef: &apiv1.SecretKeySelector{
-						LocalObjectReference: apiv1.LocalObjectReference{
-							Name: constants.CollectorsetControllerSecretName,
-						},
-						Key:      "proxyUser",
-						Optional: &secretIsOptional,
-					},
-				},
-			},
-			{
-				Name: "proxy_pass",
-				ValueFrom: &apiv1.EnvVarSource{
-					SecretKeyRef: &apiv1.SecretKeySelector{
-						LocalObjectReference: apiv1.LocalObjectReference{
-							Name: constants.CollectorsetControllerSecretName,
-						},
-						Key:      "proxyPass",
-						Optional: &secretIsOptional,
-					},
-				},
-			},
-		}...)
 	}
 
 	if _, _err := client.AppsV1beta1().StatefulSets(statefulset.ObjectMeta.Namespace).Create(&statefulset); _err != nil {
