@@ -2,11 +2,11 @@ package controller
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
-	"github.com/logicmonitor/k8s-collectorset-controller/pkg/config"
-
 	crv1alpha1 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1"
+	"github.com/logicmonitor/k8s-collectorset-controller/pkg/config"
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/constants"
 	"github.com/logicmonitor/lm-sdk-go/client"
 	"github.com/logicmonitor/lm-sdk-go/client/lm"
@@ -45,6 +45,11 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 	secretIsOptional := false
 	collectorSize := strings.ToLower(collectorset.Spec.Size)
 	log.Infof("Collector size is %s", collectorSize)
+
+	proxyHost, proxyPort, proxyUser, proxyPass, err := parseProxyURL(collectorsetConfig.ProxyURL)
+	if err != nil {
+		return nil, err
+	}
 
 	statefulset := appsv1beta1.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
@@ -126,10 +131,6 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 									},
 								},
 								{
-									Name:  "proxy_url",
-									Value: collectorsetConfig.ProxyURL,
-								},
-								{
 									Name:  "kubernetes",
 									Value: "true",
 								},
@@ -148,6 +149,22 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 								{
 									Name:  "COLLECTOR_IDS",
 									Value: strings.Trim(strings.Join(strings.Fields(fmt.Sprint(ids)), ","), "[]"),
+								},
+								{
+									Name:  "proxy_host",
+									Value: proxyHost,
+								},
+								{
+									Name:  "proxy_port",
+									Value: proxyPort,
+								},
+								{
+									Name:  "proxy_user",
+									Value: proxyUser,
+								},
+								{
+									Name:  "proxy_pass",
+									Value: proxyPass,
 								},
 							},
 							Resources: getResourceRequirements(collectorSize),
@@ -178,6 +195,28 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 		log.Warnf("Failed to set collector backup agents: %v", err)
 	}
 	return collectorset.Status.IDs, nil
+}
+
+func parseProxyURL(proxyURLStr string) (proxyHost string, proxyPort string, proxyUser string, proxyPass string, err error) {
+	proxyURL, err := url.Parse(proxyURLStr)
+	if err != nil {
+		return
+	}
+	strs := strings.Split(proxyHost, ":")
+	if len(strs) == 2 {
+		proxyHost = proxyURL.Scheme + "://" + strs[0]
+		proxyPort = strs[1]
+	} else {
+		proxyHost = proxyURL.Scheme + "://" + proxyURL.Host
+	}
+	if proxyURL.User != nil {
+		proxyUser = proxyURL.User.Username()
+		pass, isSet := proxyURL.User.Password()
+		if isSet {
+			proxyPass = pass
+		}
+	}
+	return proxyHost, proxyPort, proxyUser, proxyPass, err
 }
 
 func updateCollectors(client *client.LMSdkGo, ids []int32) error {
