@@ -3,11 +3,14 @@ package controller
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"strings"
 	"time"
 
 	crv1alpha1 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1"
 	collectorsetclient "github.com/logicmonitor/k8s-collectorset-controller/pkg/client"
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/config"
+	"github.com/logicmonitor/k8s-collectorset-controller/pkg/constants"
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/distributor"
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/distributor/roundrobin"
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/policy"
@@ -16,6 +19,7 @@ import (
 	"github.com/logicmonitor/lm-sdk-go/client/lm"
 	log "github.com/sirupsen/logrus"
 	apiv1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
@@ -30,6 +34,7 @@ type Controller struct {
 	LogicmonitorClient *client.LMSdkGo
 	Storage            storage.Storage
 	CollectorsetConfig *config.Config
+	UseHTTPProxy       bool
 }
 
 // New instantiates and returns a Controller and an error if any.
@@ -59,8 +64,59 @@ func New(collectorsetconfig *config.Config, storage storage.Storage) (*Controlle
 		Storage:            storage,
 		CollectorsetConfig: collectorsetconfig,
 	}
-
+	err = c.checkHTTPProxy()
+	if err != nil {
+		return nil, err
+	}
 	return c, nil
+}
+
+func (c *Controller) checkHTTPProxy() error {
+	namespace := c.CollectorsetConfig.Namespace
+	secret, err := c.Clientset.CoreV1().Secrets(namespace).Get(constants.CollectorsetControllerSecretName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	proxyURLStr := string(secret.Data["proxyURL"])
+	if proxyURLStr == "" {
+		log.Infof("Not set proxyURL")
+		return nil
+	}
+	proxyURL, err := url.Parse(proxyURLStr)
+	if err != nil {
+		return err
+	}
+	if proxyURL.Host == "" {
+		return fmt.Errorf("invalid proxyURL %s", proxyURLStr)
+	}
+	proxyHost := ""
+	proxyPort := ""
+	proxyUser := ""
+	proxyPass := ""
+	strArray := strings.Split(proxyURL.Host, ":")
+	if len(strArray) == 2 {
+		proxyHost = proxyURL.Scheme + "://" + strArray[0]
+		proxyPort = strArray[1]
+	} else {
+		proxyHost = proxyURL.Scheme + "://" + proxyURL.Host
+	}
+	if proxyURL.User != nil {
+		proxyUser = proxyURL.User.Username()
+		pass, isSet := proxyURL.User.Password()
+		if isSet {
+			proxyPass = pass
+		}
+	}
+	secret.Data["proxyHost"] = []byte(proxyHost)
+	secret.Data["proxyPort"] = []byte(proxyPort)
+	secret.Data["proxyUser"] = []byte(proxyUser)
+	secret.Data["proxyPass"] = []byte(proxyPass)
+	_, err = c.Clientset.CoreV1().Secrets(namespace).Update(secret)
+	if err != nil {
+		return err
+	}
+	c.UseHTTPProxy = true
+	return nil
 }
 
 // Run starts a CollectorSet resource controller.
@@ -96,7 +152,7 @@ func (c *Controller) addFunc(obj interface{}) {
 	collectorset := obj.(*crv1alpha1.CollectorSet)
 	log.Infof("Starting to create collectorset: %s", collectorset.Name)
 
-	ids, err := CreateOrUpdateCollectorSet(collectorset, c.LogicmonitorClient, c.Clientset, c.CollectorsetConfig)
+	ids, err := CreateOrUpdateCollectorSet(collectorset, c.LogicmonitorClient, c.Clientset, c.UseHTTPProxy)
 	if err != nil {
 		log.Errorf("Failed to create collectorset: %v", err)
 		return
@@ -131,7 +187,7 @@ func (c *Controller) updateFunc(oldObj, newObj interface{}) {
 	newcollectorset := newObj.(*crv1alpha1.CollectorSet)
 
 	log.Infof("Starting to update collectorset: %s", newcollectorset.Name)
-	_, err := CreateOrUpdateCollectorSet(newcollectorset, c.LogicmonitorClient, c.Clientset, c.CollectorsetConfig)
+	_, err := CreateOrUpdateCollectorSet(newcollectorset, c.LogicmonitorClient, c.Clientset, c.UseHTTPProxy)
 	if err != nil {
 		log.Errorf("Failed to update collectorset: %v", err)
 		return

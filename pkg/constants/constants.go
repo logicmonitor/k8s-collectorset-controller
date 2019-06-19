@@ -24,6 +24,8 @@ const (
 const (
 	// ArgusSecretName is the service account name with the proper RBAC policies to allow a collector to monitor the cluster.
 	ArgusSecretName = "argus"
+	// CollectorsetControllerSecretName is the service account name with the proper RBAC policies to allow a collector to monitor the cluster.
+	CollectorsetControllerSecretName = "collectorset-controller"
 	// CollectorServiceAccountName is the service account name with the proper RBAC policies to allow a collector to monitor the cluster.
 	CollectorServiceAccountName = "collector"
 	// HealthServerServiceName is the gRPC service name for the health checks.

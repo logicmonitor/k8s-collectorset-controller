@@ -2,11 +2,9 @@ package controller
 
 import (
 	"fmt"
-	"net/url"
 	"strings"
 
 	crv1alpha1 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1"
-	"github.com/logicmonitor/k8s-collectorset-controller/pkg/config"
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/constants"
 	"github.com/logicmonitor/lm-sdk-go/client"
 	"github.com/logicmonitor/lm-sdk-go/client/lm"
@@ -23,7 +21,7 @@ import (
 
 // CreateOrUpdateCollectorSet creates a replicaset for each collector in
 // a CollectorSet
-func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient *client.LMSdkGo, client clientset.Interface, collectorsetConfig *config.Config) ([]int32, error) {
+func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient *client.LMSdkGo, client clientset.Interface, useHTTPProxy bool) ([]int32, error) {
 	groupID := collectorset.Spec.GroupID
 	if groupID == 0 || !checkCollectorGroupExistsByID(lmClient, groupID) {
 		groupName := constants.ClusterCollectorGroupPrefix + collectorset.Spec.ClusterName
@@ -45,11 +43,6 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 	secretIsOptional := false
 	collectorSize := strings.ToLower(collectorset.Spec.Size)
 	log.Infof("Collector size is %s", collectorSize)
-
-	proxyHost, proxyPort, proxyUser, proxyPass, err := parseProxyURL(collectorsetConfig.ProxyURL)
-	if err != nil {
-		return nil, err
-	}
 
 	statefulset := appsv1beta1.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
@@ -99,7 +92,7 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 									ValueFrom: &apiv1.EnvVarSource{
 										SecretKeyRef: &apiv1.SecretKeySelector{
 											LocalObjectReference: apiv1.LocalObjectReference{
-												Name: constants.ArgusSecretName,
+												Name: constants.CollectorsetControllerSecretName,
 											},
 											Key:      "account",
 											Optional: &secretIsOptional,
@@ -111,7 +104,7 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 									ValueFrom: &apiv1.EnvVarSource{
 										SecretKeyRef: &apiv1.SecretKeySelector{
 											LocalObjectReference: apiv1.LocalObjectReference{
-												Name: constants.ArgusSecretName,
+												Name: constants.CollectorsetControllerSecretName,
 											},
 											Key:      "accessID",
 											Optional: &secretIsOptional,
@@ -123,7 +116,7 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 									ValueFrom: &apiv1.EnvVarSource{
 										SecretKeyRef: &apiv1.SecretKeySelector{
 											LocalObjectReference: apiv1.LocalObjectReference{
-												Name: constants.ArgusSecretName,
+												Name: constants.CollectorsetControllerSecretName,
 											},
 											Key:      "accessKey",
 											Optional: &secretIsOptional,
@@ -150,22 +143,6 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 									Name:  "COLLECTOR_IDS",
 									Value: strings.Trim(strings.Join(strings.Fields(fmt.Sprint(ids)), ","), "[]"),
 								},
-								{
-									Name:  "proxy_host",
-									Value: proxyHost,
-								},
-								{
-									Name:  "proxy_port",
-									Value: proxyPort,
-								},
-								{
-									Name:  "proxy_user",
-									Value: proxyUser,
-								},
-								{
-									Name:  "proxy_pass",
-									Value: proxyPass,
-								},
 							},
 							Resources: getResourceRequirements(collectorSize),
 						},
@@ -177,6 +154,60 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 			},
 			PodManagementPolicy: appsv1beta1.ParallelPodManagement,
 		},
+	}
+
+	if useHTTPProxy {
+		container := statefulset.Spec.Template.Spec.Containers[0]
+		container.Env = append(container.Env, []apiv1.EnvVar{
+			{
+				Name: "proxy_host",
+				ValueFrom: &apiv1.EnvVarSource{
+					SecretKeyRef: &apiv1.SecretKeySelector{
+						LocalObjectReference: apiv1.LocalObjectReference{
+							Name: constants.CollectorsetControllerSecretName,
+						},
+						Key:      "proxyHost",
+						Optional: &secretIsOptional,
+					},
+				},
+			},
+			{
+				Name: "proxy_port",
+				ValueFrom: &apiv1.EnvVarSource{
+					SecretKeyRef: &apiv1.SecretKeySelector{
+						LocalObjectReference: apiv1.LocalObjectReference{
+							Name: constants.CollectorsetControllerSecretName,
+						},
+						Key:      "proxyPort",
+						Optional: &secretIsOptional,
+					},
+				},
+			},
+			{
+				Name: "proxy_user",
+				ValueFrom: &apiv1.EnvVarSource{
+					SecretKeyRef: &apiv1.SecretKeySelector{
+						LocalObjectReference: apiv1.LocalObjectReference{
+							Name: constants.CollectorsetControllerSecretName,
+						},
+						Key:      "proxyUser",
+						Optional: &secretIsOptional,
+					},
+				},
+			},
+			{
+				Name: "proxy_pass",
+				ValueFrom: &apiv1.EnvVarSource{
+					SecretKeyRef: &apiv1.SecretKeySelector{
+						LocalObjectReference: apiv1.LocalObjectReference{
+							Name: constants.CollectorsetControllerSecretName,
+						},
+						Key:      "proxyPass",
+						Optional: &secretIsOptional,
+					},
+				},
+			},
+		}...)
 	}
 
 	if _, _err := client.AppsV1beta1().StatefulSets(statefulset.ObjectMeta.Namespace).Create(&statefulset); _err != nil {
@@ -195,35 +226,6 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 		log.Warnf("Failed to set collector backup agents: %v", err)
 	}
 	return collectorset.Status.IDs, nil
-}
-
-func parseProxyURL(proxyURLStr string) (proxyHost string, proxyPort string, proxyUser string, proxyPass string, err error) {
-	if proxyURLStr == "" {
-		return
-	}
-	proxyURL, err := url.Parse(proxyURLStr)
-	if err != nil {
-		return
-	}
-	if proxyURL.Host == "" {
-		log.Warnf("Invalid proxyURL: %s", proxyURLStr)
-		return
-	}
-	strs := strings.Split(proxyURL.Host, ":")
-	if len(strs) == 2 {
-		proxyHost = proxyURL.Scheme + "://" + strs[0]
-		proxyPort = strs[1]
-	} else {
-		proxyHost = proxyURL.Scheme + "://" + proxyURL.Host
-	}
-	if proxyURL.User != nil {
-		proxyUser = proxyURL.User.Username()
-		pass, isSet := proxyURL.User.Password()
-		if isSet {
-			proxyPass = pass
-		}
-	}
-	return proxyHost, proxyPort, proxyUser, proxyPass, err
 }
 
 func updateCollectors(client *client.LMSdkGo, ids []int32) error {
