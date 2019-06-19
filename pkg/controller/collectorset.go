@@ -198,11 +198,18 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 }
 
 func parseProxyURL(proxyURLStr string) (proxyHost string, proxyPort string, proxyUser string, proxyPass string, err error) {
+	if proxyURLStr == "" {
+		return
+	}
 	proxyURL, err := url.Parse(proxyURLStr)
 	if err != nil {
 		return
 	}
-	strs := strings.Split(proxyHost, ":")
+	if proxyURL.Host == "" {
+		log.Warnf("Invalid proxyURL: %s", proxyURLStr)
+		return
+	}
+	strs := strings.Split(proxyURL.Host, ":")
 	if len(strs) == 2 {
 		proxyHost = proxyURL.Scheme + "://" + strs[0]
 		proxyPort = strs[1]
