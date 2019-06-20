@@ -72,6 +72,9 @@ func New(collectorsetconfig *config.Config, storage storage.Storage) (*Controlle
 
 func (c *Controller) checkHTTPProxy() error {
 	namespace := c.CollectorsetConfig.Namespace
+	if namespace == "" {
+		return nil
+	}
 	secret, err := c.Clientset.CoreV1().Secrets(namespace).Get(constants.CollectorsetControllerSecretName, metav1.GetOptions{})
 	if err != nil {
 		return err
