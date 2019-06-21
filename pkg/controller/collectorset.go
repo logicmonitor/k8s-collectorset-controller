@@ -156,7 +156,7 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, controlle
 		},
 	}
 
-	checkProxy(controller, &statefulset)
+	setProxyConfiguration(controller, &statefulset)
 
 	if _, _err := controller.Clientset.AppsV1beta1().StatefulSets(statefulset.ObjectMeta.Namespace).Create(&statefulset); _err != nil {
 		if !apierrors.IsAlreadyExists(_err) {
@@ -176,56 +176,57 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, controlle
 	return collectorset.Status.IDs, nil
 }
 
-func checkProxy(controller *Controller, statefulset *appsv1beta1.StatefulSet) {
-	if controller.CollectorsetConfig.ProxyHost != "" {
-		container := &statefulset.Spec.Template.Spec.Containers[0]
+func setProxyConfiguration(controller *Controller, statefulset *appsv1beta1.StatefulSet) {
+	if controller.CollectorsetConfig.ProxyHost == "" {
+		return
+	}
+	container := &statefulset.Spec.Template.Spec.Containers[0]
+	container.Env = append(container.Env,
+		apiv1.EnvVar{
+			Name:  "proxy_host",
+			Value: controller.CollectorsetConfig.ProxyHost,
+		},
+	)
+
+	if controller.CollectorsetConfig.ProxyPort != "" {
 		container.Env = append(container.Env,
 			apiv1.EnvVar{
-				Name:  "proxy_host",
-				Value: controller.CollectorsetConfig.ProxyHost,
+				Name:  "proxy_port",
+				Value: controller.CollectorsetConfig.ProxyPort,
 			},
 		)
-
-		if controller.CollectorsetConfig.ProxyPort != "" {
-			container.Env = append(container.Env,
-				apiv1.EnvVar{
-					Name:  "proxy_port",
-					Value: controller.CollectorsetConfig.ProxyPort,
+	}
+	if controller.CollectorsetConfig.ProxyUser != "" {
+		secretIsOptionalTrue := true
+		container.Env = append(container.Env,
+			apiv1.EnvVar{
+				Name: "proxy_user",
+				ValueFrom: &apiv1.EnvVarSource{
+					SecretKeyRef: &apiv1.SecretKeySelector{
+						LocalObjectReference: apiv1.LocalObjectReference{
+							Name: constants.CollectorsetControllerSecretName,
+						},
+						Key:      "proxyUser",
+						Optional: &secretIsOptionalTrue,
+					},
 				},
-			)
-		}
-		if controller.CollectorsetConfig.ProxyUser != "" {
-			secretIsOptionalTrue := true
+			},
+		)
+		if controller.CollectorsetConfig.ProxyPass != "" {
 			container.Env = append(container.Env,
 				apiv1.EnvVar{
-					Name: "proxy_user",
+					Name: "proxy_pass",
 					ValueFrom: &apiv1.EnvVarSource{
 						SecretKeyRef: &apiv1.SecretKeySelector{
 							LocalObjectReference: apiv1.LocalObjectReference{
 								Name: constants.CollectorsetControllerSecretName,
 							},
-							Key:      "proxyUser",
+							Key:      "proxyPass",
 							Optional: &secretIsOptionalTrue,
 						},
 					},
 				},
 			)
-			if controller.CollectorsetConfig.ProxyPass != "" {
-				container.Env = append(container.Env,
-					apiv1.EnvVar{
-						Name: "proxy_pass",
-						ValueFrom: &apiv1.EnvVarSource{
-							SecretKeyRef: &apiv1.SecretKeySelector{
-								LocalObjectReference: apiv1.LocalObjectReference{
-									Name: constants.CollectorsetControllerSecretName,
-								},
-								Key:      "proxyPass",
-								Optional: &secretIsOptionalTrue,
-							},
-						},
-					},
-				)
-			}
 		}
 	}
 }
