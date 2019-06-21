@@ -3,14 +3,11 @@ package controller
 import (
 	"context"
 	"fmt"
-	"net/url"
-	"strings"
 	"time"
 
 	crv1alpha1 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1"
 	collectorsetclient "github.com/logicmonitor/k8s-collectorset-controller/pkg/client"
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/config"
-	"github.com/logicmonitor/k8s-collectorset-controller/pkg/constants"
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/distributor"
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/distributor/roundrobin"
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/policy"
@@ -19,7 +16,6 @@ import (
 	"github.com/logicmonitor/lm-sdk-go/client/lm"
 	log "github.com/sirupsen/logrus"
 	apiv1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
@@ -63,61 +59,7 @@ func New(collectorsetconfig *config.Config, storage storage.Storage) (*Controlle
 		Storage:            storage,
 		CollectorsetConfig: collectorsetconfig,
 	}
-	err = c.checkHTTPProxy()
-	if err != nil {
-		return nil, err
-	}
 	return c, nil
-}
-
-func (c *Controller) checkHTTPProxy() error {
-	namespace := c.CollectorsetConfig.Namespace
-	if namespace == "" {
-		return nil
-	}
-	secret, err := c.Clientset.CoreV1().Secrets(namespace).Get(constants.CollectorsetControllerSecretName, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-	proxyURLStr := string(secret.Data["proxyURL"])
-	if proxyURLStr == "" {
-		log.Infof("Not set proxyURL")
-		return nil
-	}
-	proxyURL, err := url.Parse(proxyURLStr)
-	if err != nil {
-		return err
-	}
-	if proxyURL.Host == "" {
-		return fmt.Errorf("invalid proxyURL %s", proxyURLStr)
-	}
-	proxyHost := ""
-	proxyPort := ""
-	proxyUser := ""
-	proxyPass := ""
-	strArray := strings.Split(proxyURL.Host, ":")
-	if len(strArray) == 2 {
-		proxyHost = proxyURL.Scheme + "://" + strArray[0]
-		proxyPort = strArray[1]
-	} else {
-		proxyHost = proxyURL.Scheme + "://" + proxyURL.Host
-	}
-	if proxyURL.User != nil {
-		proxyUser = proxyURL.User.Username()
-		pass, isSet := proxyURL.User.Password()
-		if isSet {
-			proxyPass = pass
-		}
-	}
-	secret.Data["proxyHost"] = []byte(proxyHost)
-	secret.Data["proxyPort"] = []byte(proxyPort)
-	secret.Data["proxyUser"] = []byte(proxyUser)
-	secret.Data["proxyPass"] = []byte(proxyPass)
-	_, err = c.Clientset.CoreV1().Secrets(namespace).Update(secret)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 // Run starts a CollectorSet resource controller.

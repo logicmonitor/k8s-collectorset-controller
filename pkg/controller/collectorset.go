@@ -125,49 +125,13 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 									},
 								},
 								{
-									Name: "proxy_host",
+									Name: "proxy_url",
 									ValueFrom: &apiv1.EnvVarSource{
 										SecretKeyRef: &apiv1.SecretKeySelector{
 											LocalObjectReference: apiv1.LocalObjectReference{
 												Name: constants.CollectorsetControllerSecretName,
 											},
-											Key:      "proxyHost",
-											Optional: &secretIsOptionalTrue,
-										},
-									},
-								},
-								{
-									Name: "proxy_port",
-									ValueFrom: &apiv1.EnvVarSource{
-										SecretKeyRef: &apiv1.SecretKeySelector{
-											LocalObjectReference: apiv1.LocalObjectReference{
-												Name: constants.CollectorsetControllerSecretName,
-											},
-											Key:      "proxyPort",
-											Optional: &secretIsOptionalTrue,
-										},
-									},
-								},
-								{
-									Name: "proxy_user",
-									ValueFrom: &apiv1.EnvVarSource{
-										SecretKeyRef: &apiv1.SecretKeySelector{
-											LocalObjectReference: apiv1.LocalObjectReference{
-												Name: constants.CollectorsetControllerSecretName,
-											},
-											Key:      "proxyUser",
-											Optional: &secretIsOptionalTrue,
-										},
-									},
-								},
-								{
-									Name: "proxy_pass",
-									ValueFrom: &apiv1.EnvVarSource{
-										SecretKeyRef: &apiv1.SecretKeySelector{
-											LocalObjectReference: apiv1.LocalObjectReference{
-												Name: constants.CollectorsetControllerSecretName,
-											},
-											Key:      "proxyPass",
+											Key:      "proxyURL",
 											Optional: &secretIsOptionalTrue,
 										},
 									},

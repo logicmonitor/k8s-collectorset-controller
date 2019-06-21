@@ -11,7 +11,6 @@ import (
 // Config represents the application's configuration file.
 type Config struct {
 	*Secrets
-	Namespace string `yaml:"namespace"`
 }
 
 // Secrets represents the application's sensitive configuration file.
