@@ -41,7 +41,6 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, controlle
 	}
 
 	secretIsOptional := false
-	secretIsOptionalTrue := true
 	collectorSize := strings.ToLower(collectorset.Spec.Size)
 	log.Infof("Collector size is %s", collectorSize)
 
@@ -125,38 +124,6 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, controlle
 									},
 								},
 								{
-									Name: "proxy_user",
-									ValueFrom: &apiv1.EnvVarSource{
-										SecretKeyRef: &apiv1.SecretKeySelector{
-											LocalObjectReference: apiv1.LocalObjectReference{
-												Name: constants.CollectorsetControllerSecretName,
-											},
-											Key:      "proxyUser",
-											Optional: &secretIsOptionalTrue,
-										},
-									},
-								},
-								{
-									Name: "proxy_pass",
-									ValueFrom: &apiv1.EnvVarSource{
-										SecretKeyRef: &apiv1.SecretKeySelector{
-											LocalObjectReference: apiv1.LocalObjectReference{
-												Name: constants.CollectorsetControllerSecretName,
-											},
-											Key:      "proxyPass",
-											Optional: &secretIsOptionalTrue,
-										},
-									},
-								},
-								{
-									Name:  "proxy_host",
-									Value: controller.CollectorsetConfig.ProxyHost,
-								},
-								{
-									Name:  "proxy_port",
-									Value: controller.CollectorsetConfig.ProxyPort,
-								},
-								{
 									Name:  "kubernetes",
 									Value: "true",
 								},
@@ -189,6 +156,8 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, controlle
 		},
 	}
 
+	checkProxy(controller, &statefulset)
+
 	if _, _err := controller.Clientset.AppsV1beta1().StatefulSets(statefulset.ObjectMeta.Namespace).Create(&statefulset); _err != nil {
 		if !apierrors.IsAlreadyExists(_err) {
 			return nil, _err
@@ -205,6 +174,60 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, controlle
 		log.Warnf("Failed to set collector backup agents: %v", err)
 	}
 	return collectorset.Status.IDs, nil
+}
+
+func checkProxy(controller *Controller, statefulset *appsv1beta1.StatefulSet) {
+	if controller.CollectorsetConfig.ProxyHost != "" {
+		container := &statefulset.Spec.Template.Spec.Containers[0]
+		container.Env = append(container.Env,
+			apiv1.EnvVar{
+				Name:  "proxy_host",
+				Value: controller.CollectorsetConfig.ProxyHost,
+			},
+		)
+
+		if controller.CollectorsetConfig.ProxyPort != "" {
+			container.Env = append(container.Env,
+				apiv1.EnvVar{
+					Name:  "proxy_port",
+					Value: controller.CollectorsetConfig.ProxyPort,
+				},
+			)
+		}
+		if controller.CollectorsetConfig.ProxyUser != "" {
+			secretIsOptionalTrue := true
+			container.Env = append(container.Env,
+				apiv1.EnvVar{
+					Name: "proxy_user",
+					ValueFrom: &apiv1.EnvVarSource{
+						SecretKeyRef: &apiv1.SecretKeySelector{
+							LocalObjectReference: apiv1.LocalObjectReference{
+								Name: constants.CollectorsetControllerSecretName,
+							},
+							Key:      "proxyUser",
+							Optional: &secretIsOptionalTrue,
+						},
+					},
+				},
+			)
+			if controller.CollectorsetConfig.ProxyPass != "" {
+				container.Env = append(container.Env,
+					apiv1.EnvVar{
+						Name: "proxy_pass",
+						ValueFrom: &apiv1.EnvVarSource{
+							SecretKeyRef: &apiv1.SecretKeySelector{
+								LocalObjectReference: apiv1.LocalObjectReference{
+									Name: constants.CollectorsetControllerSecretName,
+								},
+								Key:      "proxyPass",
+								Optional: &secretIsOptionalTrue,
+							},
+						},
+					},
+				)
+			}
+		}
+	}
 }
 
 func updateCollectors(client *client.LMSdkGo, ids []int32) error {
