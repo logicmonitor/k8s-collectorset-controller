@@ -21,13 +21,13 @@ import (
 
 // CreateOrUpdateCollectorSet creates a replicaset for each collector in
 // a CollectorSet
-func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient *client.LMSdkGo, client clientset.Interface) ([]int32, error) {
+func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, controller *Controller) ([]int32, error) {
 	groupID := collectorset.Spec.GroupID
-	if groupID == 0 || !checkCollectorGroupExistsByID(lmClient, groupID) {
+	if groupID == 0 || !checkCollectorGroupExistsByID(controller.LogicmonitorClient, groupID) {
 		groupName := constants.ClusterCollectorGroupPrefix + collectorset.Spec.ClusterName
 		log.Infof("Group name is %s", groupName)
 
-		newGroupID, err := getCollectorGroupID(lmClient, groupName, collectorset)
+		newGroupID, err := getCollectorGroupID(controller.LogicmonitorClient, groupName, collectorset)
 		if err != nil {
 			return nil, err
 		}
@@ -35,7 +35,7 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 		groupID = newGroupID
 	}
 
-	ids, err := getCollectorIDs(lmClient, groupID, collectorset)
+	ids, err := getCollectorIDs(controller.LogicmonitorClient, groupID, collectorset)
 	if err != nil {
 		return nil, err
 	}
@@ -125,16 +125,36 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 									},
 								},
 								{
-									Name: "proxy_url",
+									Name: "proxy_user",
 									ValueFrom: &apiv1.EnvVarSource{
 										SecretKeyRef: &apiv1.SecretKeySelector{
 											LocalObjectReference: apiv1.LocalObjectReference{
 												Name: constants.CollectorsetControllerSecretName,
 											},
-											Key:      "proxyURL",
+											Key:      "proxyUser",
 											Optional: &secretIsOptionalTrue,
 										},
 									},
+								},
+								{
+									Name: "proxy_pass",
+									ValueFrom: &apiv1.EnvVarSource{
+										SecretKeyRef: &apiv1.SecretKeySelector{
+											LocalObjectReference: apiv1.LocalObjectReference{
+												Name: constants.CollectorsetControllerSecretName,
+											},
+											Key:      "proxyPass",
+											Optional: &secretIsOptionalTrue,
+										},
+									},
+								},
+								{
+									Name:  "proxy_host",
+									Value: controller.CollectorsetConfig.ProxyHost,
+								},
+								{
+									Name:  "proxy_port",
+									Value: controller.CollectorsetConfig.ProxyPort,
 								},
 								{
 									Name:  "kubernetes",
@@ -169,18 +189,18 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, lmClient 
 		},
 	}
 
-	if _, _err := client.AppsV1beta1().StatefulSets(statefulset.ObjectMeta.Namespace).Create(&statefulset); _err != nil {
+	if _, _err := controller.Clientset.AppsV1beta1().StatefulSets(statefulset.ObjectMeta.Namespace).Create(&statefulset); _err != nil {
 		if !apierrors.IsAlreadyExists(_err) {
 			return nil, _err
 		}
-		if _, _err := client.AppsV1beta1().StatefulSets(statefulset.ObjectMeta.Namespace).Update(&statefulset); _err != nil {
+		if _, _err := controller.Clientset.AppsV1beta1().StatefulSets(statefulset.ObjectMeta.Namespace).Update(&statefulset); _err != nil {
 			return nil, _err
 		}
 	}
 
 	collectorset.Status.IDs = ids
 
-	err = updateCollectors(lmClient, ids)
+	err = updateCollectors(controller.LogicmonitorClient, ids)
 	if err != nil {
 		log.Warnf("Failed to set collector backup agents: %v", err)
 	}

@@ -95,7 +95,7 @@ func (c *Controller) addFunc(obj interface{}) {
 	collectorset := obj.(*crv1alpha1.CollectorSet)
 	log.Infof("Starting to create collectorset: %s", collectorset.Name)
 
-	ids, err := CreateOrUpdateCollectorSet(collectorset, c.LogicmonitorClient, c.Clientset)
+	ids, err := CreateOrUpdateCollectorSet(collectorset, c)
 	if err != nil {
 		log.Errorf("Failed to create collectorset: %v", err)
 		return
@@ -130,7 +130,7 @@ func (c *Controller) updateFunc(oldObj, newObj interface{}) {
 	newcollectorset := newObj.(*crv1alpha1.CollectorSet)
 
 	log.Infof("Starting to update collectorset: %s", newcollectorset.Name)
-	_, err := CreateOrUpdateCollectorSet(newcollectorset, c.LogicmonitorClient, c.Clientset)
+	_, err := CreateOrUpdateCollectorSet(newcollectorset, c)
 	if err != nil {
 		log.Errorf("Failed to update collectorset: %v", err)
 		return
