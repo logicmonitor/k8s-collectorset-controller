@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -19,18 +18,14 @@ func newLMClient(collectorsetconfig *config.Config) (*client.LMSdkGo, error) {
 	config.SetAccessKey(&collectorsetconfig.Key)
 	domain := collectorsetconfig.Account + ".logicmonitor.com"
 	config.SetAccountDomain(&domain)
-	if collectorsetconfig.ProxyHost == "" {
+	if collectorsetconfig.ProxyURL == "" {
 		return client.New(config), nil
 	}
 	return newClientWithProxy(config, collectorsetconfig)
 }
 
 func newClientWithProxy(config *client.Config, collectorsetconfig *config.Config) (*client.LMSdkGo, error) {
-	proxyAddr := collectorsetconfig.ProxyHost
-	if collectorsetconfig.ProxyPort != "" {
-		proxyAddr = fmt.Sprintf("%s:%s", collectorsetconfig.ProxyHost, collectorsetconfig.ProxyPort)
-	}
-	proxyURL, err := url.Parse(proxyAddr)
+	proxyURL, err := url.Parse(collectorsetconfig.ProxyURL)
 	if collectorsetconfig.ProxyUser != "" {
 		if collectorsetconfig.ProxyPass != "" {
 			proxyURL.User = url.UserPassword(collectorsetconfig.ProxyUser, collectorsetconfig.ProxyPass)
@@ -42,7 +37,7 @@ func newClientWithProxy(config *client.Config, collectorsetconfig *config.Config
 	if err != nil {
 		return nil, err
 	}
-	log.Infof("Using http/s proxy: %s", proxyAddr)
+	log.Infof("Using http/s proxy: %s", collectorsetconfig.ProxyURL)
 	httpClient := http.Client{
 		Transport: &http.Transport{
 			Proxy: http.ProxyURL(proxyURL),

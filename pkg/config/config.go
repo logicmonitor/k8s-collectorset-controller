@@ -11,8 +11,7 @@ import (
 // Config represents the application's configuration file.
 type Config struct {
 	*Secrets
-	ProxyHost string `yaml:"proxy_host"`
-	ProxyPort string `yaml:"proxy_port"`
+	ProxyURL string `yaml:"proxy_url"`
 }
 
 // Secrets represents the application's sensitive configuration file.
