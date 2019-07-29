@@ -187,7 +187,7 @@ func setProxyConfiguration(collectorset *crv1alpha1.CollectorSet, statefulset *a
 			Value: collectorset.Spec.ProxyURL,
 		},
 	)
-	if collectorset.Spec.ProxyCredentialsSecret != "" {
+	if collectorset.Spec.SecretName != "" {
 		secretIsOptionalTrue := true
 		container.Env = append(container.Env,
 			apiv1.EnvVar{
@@ -195,7 +195,7 @@ func setProxyConfiguration(collectorset *crv1alpha1.CollectorSet, statefulset *a
 				ValueFrom: &apiv1.EnvVarSource{
 					SecretKeyRef: &apiv1.SecretKeySelector{
 						LocalObjectReference: apiv1.LocalObjectReference{
-							Name: collectorset.Spec.ProxyCredentialsSecret,
+							Name: collectorset.Spec.SecretName,
 						},
 						Key:      "proxyUser",
 						Optional: &secretIsOptionalTrue,
@@ -207,7 +207,7 @@ func setProxyConfiguration(collectorset *crv1alpha1.CollectorSet, statefulset *a
 				ValueFrom: &apiv1.EnvVarSource{
 					SecretKeyRef: &apiv1.SecretKeySelector{
 						LocalObjectReference: apiv1.LocalObjectReference{
-							Name: collectorset.Spec.ProxyCredentialsSecret,
+							Name: collectorset.Spec.SecretName,
 						},
 						Key:      "proxyPass",
 						Optional: &secretIsOptionalTrue,
