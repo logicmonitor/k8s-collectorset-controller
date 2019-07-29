@@ -415,6 +415,7 @@ func updateCollector(client *client.LMSdkGo, body *models.Collector) error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
