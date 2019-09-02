@@ -200,7 +200,7 @@ func getCollectorImagePullPolicy(collectorset *crv1alpha1.CollectorSet) (apiv1.P
 	case apiv1.PullAlways, apiv1.PullNever, apiv1.PullIfNotPresent:
 		return collectorset.Spec.ImagePullPolicy, nil
 	}
-	return "", fmt.Errorf("unsupported imagePullPolicy value: %v, supported values: %v, %v, %v", collectorset.Spec.ImagePullPolicy, apiv1.PullAlways, apiv1.PullNever, apiv1.PullIfNotPresent)
+	return "", fmt.Errorf("unsupported imagePullPolicy value: %v, supported values: [%v, %v, %v]", collectorset.Spec.ImagePullPolicy, apiv1.PullAlways, apiv1.PullNever, apiv1.PullIfNotPresent)
 
 }
 
