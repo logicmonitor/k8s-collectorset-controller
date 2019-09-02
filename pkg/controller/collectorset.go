@@ -44,6 +44,11 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, controlle
 	collectorSize := strings.ToLower(collectorset.Spec.Size)
 	log.Infof("Collector size is %s", collectorSize)
 
+	imagePullPolicy, err := getCollectorImagePullPolicy(collectorset)
+	if err != nil {
+		return nil, err
+	}
+
 	statefulset := appsv1beta1.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "apps/v1beta1",
@@ -84,8 +89,8 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, controlle
 					Containers: []apiv1.Container{
 						{
 							Name:            "collector",
-							Image:           "logicmonitor/collector:latest",
-							ImagePullPolicy: apiv1.PullAlways,
+							Image:           getCollectorImage(collectorset),
+							ImagePullPolicy: imagePullPolicy,
 							Env: []apiv1.EnvVar{
 								{
 									Name: "account",
@@ -174,6 +179,29 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, controlle
 		log.Warnf("Failed to set collector backup agents: %v", err)
 	}
 	return collectorset.Status.IDs, nil
+}
+
+func getCollectorImage(collectorset *crv1alpha1.CollectorSet) string {
+	if collectorset.Spec.ImageRepository == "" {
+		return "logicmonitor/collector:latest"
+	}
+	imageTag := collectorset.Spec.ImageTag
+	if imageTag == "" {
+		imageTag = "latest"
+	}
+	return collectorset.Spec.ImageRepository + ":" + imageTag
+}
+
+func getCollectorImagePullPolicy(collectorset *crv1alpha1.CollectorSet) (apiv1.PullPolicy, error) {
+	if collectorset.Spec.ImagePullPolicy == "" {
+		return apiv1.PullAlways, nil
+	}
+	switch collectorset.Spec.ImagePullPolicy {
+	case apiv1.PullAlways, apiv1.PullNever, apiv1.PullIfNotPresent:
+		return collectorset.Spec.ImagePullPolicy, nil
+	}
+	return "", fmt.Errorf("unsupported imagePullPolicy value: %v, supported values: %v, %v, %v", collectorset.Spec.ImagePullPolicy, apiv1.PullAlways, apiv1.PullNever, apiv1.PullIfNotPresent)
+
 }
 
 func setProxyConfiguration(collectorset *crv1alpha1.CollectorSet, statefulset *appsv1beta1.StatefulSet) {
