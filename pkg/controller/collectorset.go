@@ -183,18 +183,18 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, controlle
 
 func getCollectorImage(collectorset *crv1alpha1.CollectorSet) string {
 	if collectorset.Spec.ImageRepository == "" {
-		return "logicmonitor/collector:latest"
+		return constants.DefaultCollectorImage
 	}
 	imageTag := collectorset.Spec.ImageTag
 	if imageTag == "" {
-		imageTag = "latest"
+		imageTag = constants.DefaultCollectorImageTag
 	}
 	return collectorset.Spec.ImageRepository + ":" + imageTag
 }
 
 func getCollectorImagePullPolicy(collectorset *crv1alpha1.CollectorSet) (apiv1.PullPolicy, error) {
 	if collectorset.Spec.ImagePullPolicy == "" {
-		return apiv1.PullAlways, nil
+		return constants.DefaultCollectorImagePullPolicy, nil
 	}
 	switch collectorset.Spec.ImagePullPolicy {
 	case apiv1.PullAlways, apiv1.PullNever, apiv1.PullIfNotPresent:
