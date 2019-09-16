@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/distributor"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -29,6 +30,9 @@ type CollectorSet struct {
 
 // CollectorSetSpec represents the collectorset controller's spec.
 type CollectorSetSpec struct {
+	ImageRepository   string              `json:"imageRepository"`
+	ImageTag          string              `json:"imageTag"`
+	ImagePullPolicy   v1.PullPolicy       `json:"imagePullPolicy"`
 	Replicas          *int32              `json:"replicas"`
 	Size              string              `json:"size,omitempty"`
 	ClusterName       string              `json:"clusterName"`
