@@ -10,7 +10,7 @@ import (
 	"github.com/logicmonitor/lm-sdk-go/client/lm"
 	"github.com/logicmonitor/lm-sdk-go/models"
 	log "github.com/sirupsen/logrus"
-	appsv1beta1 "k8s.io/api/apps/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -49,9 +49,9 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, controlle
 		return nil, err
 	}
 
-	statefulset := appsv1beta1.StatefulSet{
+	statefulset := appsv1.StatefulSet{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "apps/v1beta1",
+			APIVersion: "apps/v1",
 			Kind:       "StatefulSet",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -61,8 +61,13 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, controlle
 				"logicmonitor.com/collectorset": collectorset.Name,
 			},
 		},
-		Spec: appsv1beta1.StatefulSetSpec{
+		Spec: appsv1.StatefulSetSpec{
 			Replicas: collectorset.Spec.Replicas,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"logicmonitor.com/collectorset": collectorset.Name,
+				},
+			},
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: collectorset.Namespace,
@@ -154,20 +159,20 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, controlle
 					},
 				},
 			},
-			UpdateStrategy: appsv1beta1.StatefulSetUpdateStrategy{
-				Type: appsv1beta1.RollingUpdateStatefulSetStrategyType,
+			UpdateStrategy: appsv1.StatefulSetUpdateStrategy{
+				Type: appsv1.RollingUpdateStatefulSetStrategyType,
 			},
-			PodManagementPolicy: appsv1beta1.ParallelPodManagement,
+			PodManagementPolicy: appsv1.ParallelPodManagement,
 		},
 	}
 
 	setProxyConfiguration(collectorset, &statefulset)
 
-	if _, _err := controller.Clientset.AppsV1beta1().StatefulSets(statefulset.ObjectMeta.Namespace).Create(&statefulset); _err != nil {
+	if _, _err := controller.Clientset.AppsV1().StatefulSets(statefulset.ObjectMeta.Namespace).Create(&statefulset); _err != nil {
 		if !apierrors.IsAlreadyExists(_err) {
 			return nil, _err
 		}
-		if _, _err := controller.Clientset.AppsV1beta1().StatefulSets(statefulset.ObjectMeta.Namespace).Update(&statefulset); _err != nil {
+		if _, _err := controller.Clientset.AppsV1().StatefulSets(statefulset.ObjectMeta.Namespace).Update(&statefulset); _err != nil {
 			return nil, _err
 		}
 	}
@@ -204,7 +209,7 @@ func getCollectorImagePullPolicy(collectorset *crv1alpha1.CollectorSet) (apiv1.P
 
 }
 
-func setProxyConfiguration(collectorset *crv1alpha1.CollectorSet, statefulset *appsv1beta1.StatefulSet) {
+func setProxyConfiguration(collectorset *crv1alpha1.CollectorSet, statefulset *appsv1.StatefulSet) {
 	if collectorset.Spec.ProxyURL == "" {
 		return
 	}

@@ -71,7 +71,13 @@ func (c *Config) SetAccountDomain(accountDomain *string) {
 
 // New creates a new LM sdk go client
 func New(c *Config) *LMSdkGo {
-	transport := httptransport.New(c.TransportCfg.Host, c.TransportCfg.BasePath, c.TransportCfg.Schemes)
+	var opts  = httptransport.TLSClientOptions{InsecureSkipVerify:false}
+	var client, err = httptransport.TLSClient(opts)
+	if err != nil {
+		return nil
+	}
+	transport := httptransport.NewWithClient(c.TransportCfg.Host, c.TransportCfg.BasePath, c.TransportCfg.Schemes, client)
+	//transport := httptransport.New(c.TransportCfg.Host, c.TransportCfg.BasePath, c.TransportCfg.Schemes)
 	authInfo := LMv1Auth(*c.AccessID, *c.AccessKey)
 
 	cli := new(LMSdkGo)
