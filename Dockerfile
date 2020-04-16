@@ -1,4 +1,4 @@
-FROM golang:1.11 as api
+FROM golang:1.14 as api
 WORKDIR /go/src/github.com/logicmonitor/k8s-collectorset-controller
 RUN apt-get update
 RUN apt-get -y install bsdtar
@@ -10,11 +10,11 @@ RUN mkdir api
 RUN protoc -I proto proto/api.proto \
   --go_out=plugins=grpc:api
 
-FROM golang:1.11-alpine as codegen
+FROM golang:1.14-alpine as codegen
 RUN apk add --update git
 RUN go get github.com/kubernetes/code-generator/cmd/deepcopy-gen || true \
   && cd /go/src/github.com/kubernetes/code-generator \
-  && git checkout remotes/origin/release-1.8 \
+  && git checkout remotes/origin/release-1.17 \
   && go get -d ./... \
   && go install ./cmd/deepcopy-gen
 WORKDIR $GOPATH/src/github.com/logicmonitor/k8s-collectorset-controller
@@ -25,13 +25,13 @@ RUN deepcopy-gen \
   --bounding-dirs "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1" \
   --output-file-base zz_generated.deepcopy
 
-FROM golang:1.11 as build
+FROM golang:1.14 as build
 WORKDIR $GOPATH/src/github.com/logicmonitor/k8s-collectorset-controller
 COPY --from=codegen $GOPATH/src/github.com/logicmonitor/k8s-collectorset-controller ./
 ARG VERSION
 RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o /collectorset-controller -ldflags "-X \"github.com/logicmonitor/k8s-collectorset-controller/pkg/constants.Version=${VERSION}\""
 
-FROM golang:1.11 as test
+FROM golang:1.14 as test
 WORKDIR $GOPATH/src/github.com/logicmonitor/k8s-collectorset-controller
 RUN go get -u github.com/alecthomas/gometalinter
 RUN gometalinter --install
