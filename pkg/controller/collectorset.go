@@ -208,6 +208,7 @@ func getCollectorImagePullPolicy(collectorset *crv1alpha1.CollectorSet) (apiv1.P
 	return "", fmt.Errorf("unsupported imagePullPolicy value: %v, supported values: [%v, %v, %v]", collectorset.Spec.ImagePullPolicy, apiv1.PullAlways, apiv1.PullNever, apiv1.PullIfNotPresent)
 }
 
+
 func setProxyConfiguration(collectorset *crv1alpha1.CollectorSet, statefulset *appsv1.StatefulSet) {
 	if collectorset.Spec.ProxyURL == "" {
 		return
