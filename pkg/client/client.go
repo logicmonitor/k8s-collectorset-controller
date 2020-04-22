@@ -43,7 +43,7 @@ func NewForConfig(cfg *rest.Config) (*Client, *runtime.Scheme, error) {
 	config.GroupVersion = &crv1alpha1.SchemeGroupVersion
 	config.APIPath = "/apis"
 	config.ContentType = runtime.ContentTypeJSON
-	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: serializer.NewCodecFactory(s)}
+	config.NegotiatedSerializer = serializer.NewCodecFactory(s)
 	restclient, err := rest.RESTClientFor(&config)
 	if err != nil {
 		return nil, nil, err
