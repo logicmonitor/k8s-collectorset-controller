@@ -49,7 +49,10 @@ func (srv *Server) Run() {
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
-	s.Serve(lis) // nolint: errcheck, gosec
+	serr := s.Serve(lis) // nolint: errcheck, gosec
+	if serr != nil {
+		log.Errorf("Failed to start gRPC server")
+	}
 }
 
 // CollectorID implements api.CollectorSetControllerServer. It returns the
