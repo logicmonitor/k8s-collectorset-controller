@@ -12,13 +12,15 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     env:
-        GOPATH: /home/runner/work/k8s-collectorset-controller/
+        GOPATH: /home/runner/work/
     steps:
       - name: Checkout Source 
         uses: actions/checkout@v2
       - name: gover
         run: |
           go version && echo $GOPATH && ls -l /home/runner/work/k8s-collectorset-controller/k8s-collectorset-controller
+      - name: setup
+        run: mkdir /home/runner/work/src/github.com/logicmonitor/ && cp /home/runner/work/k8s-collectorset-controller/k8s-collectorset-controller /home/runner/work/src/github.com/logicmonitor/ && cd /home/runner/work/src/github.com/logicmonitor/k8s-collectorset-controller
       - name: Run Gosec Security Scanner
         uses: securego/gosec@master
         with:
