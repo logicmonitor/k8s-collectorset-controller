@@ -20,7 +20,7 @@ jobs:
         run: |
           go version && echo $GOPATH && ls -l /home/runner/work/k8s-collectorset-controller/k8s-collectorset-controller
       - name: setup
-        run: mkdir -p /home/runner/work/src/github.com/logicmonitor/ && cp /home/runner/work/k8s-collectorset-controller/k8s-collectorset-controller /home/runner/work/src/github.com/logicmonitor/ && cd /home/runner/work/src/github.com/logicmonitor/k8s-collectorset-controller
+        run: mkdir -p /home/runner/work/src/github.com/logicmonitor/ && cp -r /home/runner/work/k8s-collectorset-controller/k8s-collectorset-controller /home/runner/work/src/github.com/logicmonitor/ && cd /home/runner/work/src/github.com/logicmonitor/k8s-collectorset-controller
       - name: Run Gosec Security Scanner
         uses: securego/gosec@master
         with:
