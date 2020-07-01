@@ -14,6 +14,9 @@ jobs:
     steps:
       - name: Checkout Source 
         uses: actions/checkout@v2
+      - name: gover
+        run: |
+          go version
       - name: Run Gosec Security Scanner
         uses: securego/gosec@master
         with:
