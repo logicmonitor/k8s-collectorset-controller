@@ -43,6 +43,7 @@ type CollectorSetSpec struct {
 	Policy            *CollectorSetPolicy `json:"policy"`
 	ProxyURL          string              `json:"proxyURL,omitempty"`
 	SecretName        string              `json:"secretName,omitempty"`
+	PriorityClassName string              `json:"priorityClassName,omitempty"`
 }
 
 // CollectorSetStatus is the CollectorSet controller's status.
