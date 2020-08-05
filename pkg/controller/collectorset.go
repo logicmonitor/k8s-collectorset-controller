@@ -91,7 +91,7 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, controlle
 							},
 						},
 					},
-					PriorityClassName: getPriorityClassName(collectorset),
+					PriorityClassName: collectorset.Spec.PriorityClassName,
 					Containers: []apiv1.Container{
 						{
 							Name:            "collector",
@@ -250,11 +250,6 @@ func setProxyConfiguration(collectorset *crv1alpha1.CollectorSet, statefulset *a
 			},
 		)
 	}
-}
-
-func getPriorityClassName(collectorset *crv1alpha1.CollectorSet) string {
-	log.Debugf("PriorityClassName: %v", collectorset.Spec.PriorityClassName)
-	return collectorset.Spec.PriorityClassName
 }
 
 func updateCollectors(client *client.LMSdkGo, ids []int32) error {
