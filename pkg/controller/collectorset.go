@@ -91,6 +91,7 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, controlle
 							},
 						},
 					},
+					PriorityClassName: collectorset.Spec.PriorityClassName,
 					Containers: []apiv1.Container{
 						{
 							Name:            "collector",
