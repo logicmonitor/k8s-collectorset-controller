@@ -44,6 +44,7 @@ type CollectorSetSpec struct {
 	ProxyURL          string              `json:"proxyURL,omitempty"`
 	SecretName        string              `json:"secretName,omitempty"`
 	PriorityClassName string              `json:"priorityClassName,omitempty"` // default value is empty string. If value is set then user must have PriorityClass resource created otherwise Pod will be rejected.
+	Tolerations       []v1.Toleration     `json:"tolerations"`                 // Tolerations are applied to pods, and allow the pods to schedule onto nodes with matching taints.
 }
 
 // CollectorSetStatus is the CollectorSet controller's status.
