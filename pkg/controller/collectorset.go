@@ -298,12 +298,12 @@ func updateCollectors(client *client.LMSdkGo, ids []int32) error {
 // DeleteCollectorSet deletes the collectorset.
 func DeleteCollectorSet(collectorset *crv1alpha1.CollectorSet, client clientset.Interface) error {
 	data := []byte(`[{"op":"add","path":"/spec/replicas","value": 0}]`)
-	if _, err := client.AppsV1beta1().StatefulSets(collectorset.Namespace).Patch(collectorset.Name, types.JSONPatchType, data); err != nil {
+	if _, err := client.AppsV1().StatefulSets(collectorset.Namespace).Patch(collectorset.Name, types.JSONPatchType, data); err != nil {
 		return err
 	}
 
 	deleteOpts := metav1.DeleteOptions{}
-	return client.AppsV1beta1().StatefulSets(collectorset.Namespace).Delete(collectorset.Name, &deleteOpts)
+	return client.AppsV1().StatefulSets(collectorset.Namespace).Delete(collectorset.Name, &deleteOpts)
 }
 
 func checkCollectorGroupExistsByID(client *client.LMSdkGo, id int32) bool {
