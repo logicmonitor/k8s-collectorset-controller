@@ -6,6 +6,7 @@ package v1alpha1
 
 import (
 	distributor "github.com/logicmonitor/k8s-collectorset-controller/pkg/distributor"
+	v1 "k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -103,6 +104,13 @@ func (in *CollectorSetSpec) DeepCopyInto(out *CollectorSetSpec) {
 		in, out := &in.Policy, &out.Policy
 		*out = new(CollectorSetPolicy)
 		(*in).DeepCopyInto(*out)
+	}
+	if in.Tolerations != nil {
+		in, out := &in.Tolerations, &out.Tolerations
+		*out = make([]v1.Toleration, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
 	}
 	return
 }
