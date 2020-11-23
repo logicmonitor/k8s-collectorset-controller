@@ -8,8 +8,8 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/config"
 	log "github.com/sirupsen/logrus"
-	"github.com/vkumbhar94/lm-sdk-go/client"
-	"github.com/vkumbhar94/lm-sdk-go/client/lm"
+	"github.com/logicmonitor/lm-sdk-go/client"
+	"github.com/logicmonitor/lm-sdk-go/client/lm"
 )
 
 func newLMClient(collectorsetconfig *config.Config) (*client.LMSdkGo, error) {

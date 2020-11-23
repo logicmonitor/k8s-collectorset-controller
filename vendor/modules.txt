@@ -89,6 +89,11 @@ github.com/kelseyhightower/envconfig
 github.com/konsorten/go-windows-terminal-sequences
 # github.com/kr/pretty v0.2.0
 ## explicit
+# github.com/logicmonitor/lm-sdk-go v2.0.0+incompatible
+## explicit
+github.com/logicmonitor/lm-sdk-go/client
+github.com/logicmonitor/lm-sdk-go/client/lm
+github.com/logicmonitor/lm-sdk-go/models
 # github.com/magiconair/properties v1.8.1
 github.com/magiconair/properties
 # github.com/mailru/easyjson v0.7.0
@@ -126,11 +131,6 @@ github.com/spf13/pflag
 github.com/spf13/viper
 # github.com/subosito/gotenv v1.2.0
 github.com/subosito/gotenv
-# github.com/vkumbhar94/lm-sdk-go v2.0.1+incompatible
-## explicit
-github.com/vkumbhar94/lm-sdk-go/client
-github.com/vkumbhar94/lm-sdk-go/client/lm
-github.com/vkumbhar94/lm-sdk-go/models
 # go.mongodb.org/mongo-driver v1.1.2
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec

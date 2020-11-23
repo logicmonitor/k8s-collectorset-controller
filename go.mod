@@ -13,7 +13,7 @@ require (
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.7.1
-	github.com/vkumbhar94/lm-sdk-go v2.0.1+incompatible
+	github.com/logicmonitor/lm-sdk-go v2.0.0+incompatible
 	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550 // indirect
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e // indirect
 	google.golang.org/grpc v1.27.0
