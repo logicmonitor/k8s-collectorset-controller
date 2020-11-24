@@ -7,9 +7,9 @@ import (
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/config"
-	log "github.com/sirupsen/logrus"
 	"github.com/logicmonitor/lm-sdk-go/client"
 	"github.com/logicmonitor/lm-sdk-go/client/lm"
+	log "github.com/sirupsen/logrus"
 )
 
 func newLMClient(collectorsetconfig *config.Config) (*client.LMSdkGo, error) {
