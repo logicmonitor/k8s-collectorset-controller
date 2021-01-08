@@ -432,6 +432,10 @@ func getResourceRequirements(size string) apiv1.ResourceRequirements {
 		quantity = resource.NewQuantity(4*1024*1024*1024, resource.BinarySI)
 	case "large":
 		quantity = resource.NewQuantity(8*1024*1024*1024, resource.BinarySI)
+	case "extra_large":
+		quantity = resource.NewQuantity(16*1024*1024*1024, resource.BinarySI)
+	case "double_extra_large":
+		quantity = resource.NewQuantity(32*1024*1024*1024, resource.BinarySI)
 	default:
 		break
 	}
