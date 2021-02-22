@@ -11,7 +11,8 @@ import (
 // Config represents the application's configuration file.
 type Config struct {
 	*Secrets
-	ProxyURL string `yaml:"proxy_url"`
+	ProxyURL  string `yaml:"proxy_url"`
+	IgnoreSSL bool   `yaml:"ignore_ssl"`
 }
 
 // Secrets represents the application's sensitive configuration file.

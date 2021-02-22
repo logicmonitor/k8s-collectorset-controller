@@ -156,6 +156,10 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, controlle
 									Name:  "COLLECTOR_IDS",
 									Value: strings.Trim(strings.Join(strings.Fields(fmt.Sprint(ids)), ","), "[]"),
 								},
+								{
+									Name:  "ignore_ssl",
+									Value: fmt.Sprint(controller.CollectorsetConfig.IgnoreSSL), //the default value is false
+								},
 							},
 							Resources: getResourceRequirements(collectorSize),
 						},
