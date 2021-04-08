@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package api;
 
+option go_package = "google.golang.org/protobuf";
+
 // The collectorset service definition.
 service CollectorSetController {
   // Retrieves a collector ID.
