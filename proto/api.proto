@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package api;
+option go_package = "github.com/logicmonitor/k8s-collectorset-controller/api";
 
-option go_package = "protobuf/";
+package api;
 
 // The collectorset service definition.
 service CollectorSetController {
