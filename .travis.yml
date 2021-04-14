@@ -7,8 +7,9 @@ services:
 language: generic
 
 before_install:
-  - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 762E3157
-  
+  - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 6B05F25D762E3157
+  - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 78BD65473CB3BD13
+
 install:
   - mkdir -p $HOME/goroot
   - curl -L https://storage.googleapis.com/golang/go1.14.1.linux-amd64.tar.gz | tar -xz --strip-components=1 -C $HOME/goroot
