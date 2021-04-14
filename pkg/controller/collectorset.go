@@ -41,141 +41,18 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, controlle
 		return nil, err
 	}
 
-	secretIsOptional := false
-	collectorSize := strings.ToLower(collectorset.Spec.Size)
-	log.Infof("Collector size is %s", collectorSize)
-
-	imagePullPolicy, err := getCollectorImagePullPolicy(collectorset)
+	statefulset, err := createStsObject(collectorset, ids, controller.CollectorsetConfig.IgnoreSSL)
 	if err != nil {
 		return nil, err
 	}
 
-	statefulset := appsv1.StatefulSet{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "apps/v1",
-			Kind:       "StatefulSet",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      collectorset.Name,
-			Namespace: collectorset.Namespace,
-			Labels: map[string]string{
-				"logicmonitor.com/collectorset": collectorset.Name,
-			},
-		},
-		Spec: appsv1.StatefulSetSpec{
-			Replicas: collectorset.Spec.Replicas,
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"logicmonitor.com/collectorset": collectorset.Name,
-				},
-			},
-			Template: apiv1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: collectorset.Namespace,
-					Labels: map[string]string{
-						"logicmonitor.com/collectorset": collectorset.Name,
-					},
-				},
-				Spec: apiv1.PodSpec{
-					ServiceAccountName: constants.CollectorServiceAccountName,
-					Affinity: &apiv1.Affinity{
-						PodAntiAffinity: &apiv1.PodAntiAffinity{
-							RequiredDuringSchedulingIgnoredDuringExecution: []apiv1.PodAffinityTerm{
-								{
-									LabelSelector: &metav1.LabelSelector{
-										MatchLabels: map[string]string{
-											"logicmonitor.com/collectorset": collectorset.Name,
-										},
-									},
-									TopologyKey: "kubernetes.io/hostname",
-								},
-							},
-						},
-					},
-					PriorityClassName: collectorset.Spec.PriorityClassName,
-					Tolerations:       getTolerations(collectorset),
-					Containers: []apiv1.Container{
-						{
-							Name:            "collector",
-							Image:           getCollectorImage(collectorset),
-							ImagePullPolicy: imagePullPolicy,
-							Env: []apiv1.EnvVar{
-								{
-									Name: "account",
-									ValueFrom: &apiv1.EnvVarSource{
-										SecretKeyRef: &apiv1.SecretKeySelector{
-											LocalObjectReference: apiv1.LocalObjectReference{
-												Name: constants.CollectorsetControllerSecretName,
-											},
-											Key:      "account",
-											Optional: &secretIsOptional,
-										},
-									},
-								},
-								{
-									Name: "access_id",
-									ValueFrom: &apiv1.EnvVarSource{
-										SecretKeyRef: &apiv1.SecretKeySelector{
-											LocalObjectReference: apiv1.LocalObjectReference{
-												Name: constants.CollectorsetControllerSecretName,
-											},
-											Key:      "accessID",
-											Optional: &secretIsOptional,
-										},
-									},
-								},
-								{
-									Name: "access_key",
-									ValueFrom: &apiv1.EnvVarSource{
-										SecretKeyRef: &apiv1.SecretKeySelector{
-											LocalObjectReference: apiv1.LocalObjectReference{
-												Name: constants.CollectorsetControllerSecretName,
-											},
-											Key:      "accessKey",
-											Optional: &secretIsOptional,
-										},
-									},
-								},
-								{
-									Name:  "kubernetes",
-									Value: "true",
-								},
-								{
-									Name:  "collector_size",
-									Value: collectorSize,
-								},
-								{
-									Name:  "collector_version",
-									Value: fmt.Sprint(collectorset.Spec.CollectorVersion), //the default value is 0, santaba will assign the latest version
-								},
-								{
-									Name:  "use_ea",
-									Value: fmt.Sprint(collectorset.Spec.UseEA), //the default value is false, santaba will assign the latest GD version
-								},
-								{
-									Name:  "COLLECTOR_IDS",
-									Value: strings.Trim(strings.Join(strings.Fields(fmt.Sprint(ids)), ","), "[]"),
-								},
-							},
-							Resources: getResourceRequirements(collectorSize),
-						},
-					},
-				},
-			},
-			UpdateStrategy: appsv1.StatefulSetUpdateStrategy{
-				Type: appsv1.RollingUpdateStatefulSetStrategyType,
-			},
-			PodManagementPolicy: appsv1.ParallelPodManagement,
-		},
-	}
+	setProxyConfiguration(collectorset, statefulset)
 
-	setProxyConfiguration(collectorset, &statefulset)
-
-	if _, _err := controller.Clientset.AppsV1().StatefulSets(statefulset.ObjectMeta.Namespace).Create(&statefulset); _err != nil {
+	if _, _err := controller.Clientset.AppsV1().StatefulSets(statefulset.ObjectMeta.Namespace).Create(statefulset); _err != nil {
 		if !apierrors.IsAlreadyExists(_err) {
 			return nil, _err
 		}
-		if _, _err := controller.Clientset.AppsV1().StatefulSets(statefulset.ObjectMeta.Namespace).Update(&statefulset); _err != nil {
+		if _, _err := controller.Clientset.AppsV1().StatefulSets(statefulset.ObjectMeta.Namespace).Update(statefulset); _err != nil {
 			return nil, _err
 		}
 	}
@@ -187,6 +64,157 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, controlle
 		log.Warnf("Failed to set collector backup agents: %v", err)
 	}
 	return collectorset.Status.IDs, nil
+}
+
+func createStsObject(collectorset *crv1alpha1.CollectorSet, ids []int32, ignoreSSL bool) (*appsv1.StatefulSet, error) {
+
+	secretIsOptional := false
+	collectorSize := strings.ToLower(collectorset.Spec.Size)
+	log.Infof("Collector size is %s", collectorSize)
+
+	imagePullPolicy, err := getCollectorImagePullPolicy(collectorset)
+	if err != nil {
+		return nil, err
+	}
+
+	statefulset := appsv1.StatefulSet{}
+
+	// Default statefulset params - not allowed to edit by user
+	statefulset.TypeMeta = metav1.TypeMeta{
+		APIVersion: "apps/v1",
+		Kind:       "StatefulSet",
+	}
+
+	if collectorset.Spec.Labels != nil {
+		statefulset.ObjectMeta.Labels = collectorset.Spec.Labels
+	} else {
+		statefulset.ObjectMeta.Labels = make(map[string]string)
+	}
+	// Add label in user defined labels
+	statefulset.ObjectMeta.Labels["logicmonitor.com/collectorset"] = collectorset.Name
+
+	statefulset.ObjectMeta.Name = collectorset.Name
+	statefulset.ObjectMeta.Namespace = collectorset.Namespace
+
+	statefulset.Annotations = collectorset.Spec.Annotations
+
+	statefulset.Spec = collectorset.Spec.CollectorStatefulSetSpec
+
+	// validate tolerations and log error message accordingly
+	validateTolerations(statefulset.Spec.Template.Spec.Tolerations)
+
+	statefulset.Spec.Replicas = collectorset.Spec.Replicas
+	statefulset.Spec.Selector = &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"logicmonitor.com/collectorset": collectorset.Name,
+		},
+	}
+
+	// configuring pod template
+	podLabels := make(map[string]string)
+	if statefulset.Spec.Template.ObjectMeta.Labels != nil {
+		podLabels = statefulset.Spec.Template.ObjectMeta.Labels
+	}
+	podLabels["logicmonitor.com/collectorset"] = collectorset.Name
+
+	statefulset.Spec.Template.ObjectMeta = metav1.ObjectMeta{
+		Namespace: collectorset.Namespace,
+		Labels:    podLabels,
+	}
+
+	statefulset.Spec.Template.Spec.ServiceAccountName = constants.CollectorServiceAccountName
+	statefulset.Spec.Template.Spec.Affinity = &apiv1.Affinity{
+		PodAntiAffinity: &apiv1.PodAntiAffinity{
+			RequiredDuringSchedulingIgnoredDuringExecution: []apiv1.PodAffinityTerm{
+				{
+					LabelSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"logicmonitor.com/collectorset": collectorset.Name,
+						},
+					},
+					TopologyKey: "kubernetes.io/hostname",
+				},
+			},
+		},
+	}
+
+	statefulset.Spec.Template.Spec.Containers = []apiv1.Container{
+		{
+			Name:            "collector",
+			Image:           getCollectorImage(collectorset),
+			ImagePullPolicy: imagePullPolicy,
+			Env: []apiv1.EnvVar{
+				{
+					Name: "account",
+					ValueFrom: &apiv1.EnvVarSource{
+						SecretKeyRef: &apiv1.SecretKeySelector{
+							LocalObjectReference: apiv1.LocalObjectReference{
+								Name: constants.CollectorsetControllerSecretName,
+							},
+							Key:      "account",
+							Optional: &secretIsOptional,
+						},
+					},
+				},
+				{
+					Name: "access_id",
+					ValueFrom: &apiv1.EnvVarSource{
+						SecretKeyRef: &apiv1.SecretKeySelector{
+							LocalObjectReference: apiv1.LocalObjectReference{
+								Name: constants.CollectorsetControllerSecretName,
+							},
+							Key:      "accessID",
+							Optional: &secretIsOptional,
+						},
+					},
+				},
+				{
+					Name: "access_key",
+					ValueFrom: &apiv1.EnvVarSource{
+						SecretKeyRef: &apiv1.SecretKeySelector{
+							LocalObjectReference: apiv1.LocalObjectReference{
+								Name: constants.CollectorsetControllerSecretName,
+							},
+							Key:      "accessKey",
+							Optional: &secretIsOptional,
+						},
+					},
+				},
+				{
+					Name:  "kubernetes",
+					Value: "true",
+				},
+				{
+					Name:  "collector_size",
+					Value: collectorSize,
+				},
+				{
+					Name:  "collector_version",
+					Value: fmt.Sprint(collectorset.Spec.CollectorVersion), //the default value is 0, santaba will assign the latest version
+				},
+				{
+					Name:  "use_ea",
+					Value: fmt.Sprint(collectorset.Spec.UseEA), //the default value is false, santaba will assign the latest GD version
+				},
+				{
+					Name:  "COLLECTOR_IDS",
+					Value: strings.Trim(strings.Join(strings.Fields(fmt.Sprint(ids)), ","), "[]"),
+				},
+				{
+					Name:  "ignore_ssl",
+					Value: fmt.Sprint(ignoreSSL), //the default value is false
+				},
+			},
+			Resources: getResourceRequirements(collectorSize),
+		},
+	}
+
+	statefulset.Spec.UpdateStrategy = appsv1.StatefulSetUpdateStrategy{
+		Type: appsv1.RollingUpdateStatefulSetStrategyType,
+	}
+	statefulset.Spec.PodManagementPolicy = appsv1.ParallelPodManagement
+
+	return &statefulset, nil
 }
 
 func getCollectorImage(collectorset *crv1alpha1.CollectorSet) string {
@@ -254,23 +282,25 @@ func setProxyConfiguration(collectorset *crv1alpha1.CollectorSet, statefulset *a
 	}
 }
 
-func getTolerations(collectorset *crv1alpha1.CollectorSet) []v1.Toleration {
-	tolerations := []v1.Toleration{}
-	if collectorset.Spec.Tolerations != nil {
-		log.Debugf("Tolerations: %v", collectorset.Spec.Tolerations)
-		for _, toleration := range collectorset.Spec.Tolerations {
+func validateTolerations(tolerations []v1.Toleration) {
+	valid := true
+	if tolerations != nil {
+		for _, toleration := range tolerations {
 			if toleration.Operator == v1.TolerationOpExists && toleration.Value != "" {
 				log.Errorf("Value must be empty when 'operator' is 'Exists'. Toleration: %v", toleration)
+				valid = false
 			} else if toleration.Operator != v1.TolerationOpExists && toleration.Key == "" {
 				log.Errorf("Operator must be 'Exists' when 'key' is empty. Toleration: %v", toleration)
+				valid = false
 			} else if toleration.Effect != v1.TaintEffectNoExecute && toleration.TolerationSeconds != nil {
 				log.Errorf("Effect must be 'NoExecute' when 'tolerationSeconds' is set. Toleration: %v", toleration)
-			} else {
-				tolerations = append(tolerations, toleration)
+				valid = false
 			}
 		}
 	}
-	return tolerations
+	if valid {
+		log.Debug("Valid configuration for tolerations")
+	}
 }
 
 func updateCollectors(client *client.LMSdkGo, ids []int32) error {
@@ -432,6 +462,10 @@ func getResourceRequirements(size string) apiv1.ResourceRequirements {
 		quantity = resource.NewQuantity(4*1024*1024*1024, resource.BinarySI)
 	case "large":
 		quantity = resource.NewQuantity(8*1024*1024*1024, resource.BinarySI)
+	case "extra_large":
+		quantity = resource.NewQuantity(16*1024*1024*1024, resource.BinarySI)
+	case "double_extra_large":
+		quantity = resource.NewQuantity(32*1024*1024*1024, resource.BinarySI)
 	default:
 		break
 	}

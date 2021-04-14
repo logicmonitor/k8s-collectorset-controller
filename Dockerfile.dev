@@ -8,7 +8,7 @@ RUN curl -L https://github.com/google/protobuf/releases/download/v3.3.0/protoc-3
 COPY ./proto ./proto
 RUN mkdir api
 RUN protoc -I proto proto/api.proto \
-  --go_out=plugins=grpc:api
+  --go_out=plugins=grpc:api --go_opt=paths=source_relative
 
 FROM golang:1.14-alpine as codegen
 RUN apk add --update git
@@ -28,6 +28,7 @@ RUN deepcopy-gen \
 FROM golang:1.14 as build
 WORKDIR $GOPATH/src/github.com/logicmonitor/k8s-collectorset-controller
 COPY --from=codegen $GOPATH/src/github.com/logicmonitor/k8s-collectorset-controller ./
+COPY --from=api $GOPATH/src/github.com/logicmonitor/k8s-collectorset-controller/api ./api
 ARG VERSION
 RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o /collectorset-controller -ldflags "-X \"github.com/logicmonitor/k8s-collectorset-controller/pkg/constants.Version=${VERSION}\""
 
