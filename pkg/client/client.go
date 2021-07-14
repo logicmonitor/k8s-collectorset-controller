@@ -6,7 +6,7 @@ import (
 	"time"
 
 	crv1alpha1 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1"
-	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -65,40 +65,75 @@ func NewForConfig(cfg *rest.Config) (*Client, *runtime.Scheme, error) {
 }
 
 // CreateCustomResourceDefinition creates the CRD for collectors.
-func (c *Client) CreateCustomResourceDefinition() (*apiextensionsv1beta1.CustomResourceDefinition, error) {
-	crd := &apiextensionsv1beta1.CustomResourceDefinition{
+func (c *Client) CreateCustomResourceDefinition() (*apiextensionsv1.CustomResourceDefinition, error) {
+	schema := &apiextensionsv1.CustomResourceValidation{}
+	crdSchema := &apiextensionsv1.JSONSchemaProps{
+		Description: "collectorset controller's spec schema",
+		Type:        "object",
+		Properties: map[string]apiextensionsv1.JSONSchemaProps{
+			"Replicas": {
+				Description: "The number of collectors to create",
+				Type:        "integer",
+			},
+			"Size": {
+				Description: "The collector size to install. Can be nano, small, medium, or large",
+				Type:        "string",
+			},
+			"GroupID": {
+				Description: "The ID of the group of the collectors",
+				Type:        "integer",
+			},
+			"CollectorVersion": {
+				Description: "The version of the collectors",
+				Type:        "integer",
+			},
+			"UseEA": {
+				Description: "On a collector downloading event, either download the latest EA version or the latest GD version",
+				Type:        "boolean",
+			},
+		},
+		Required: []string{"Size", "Replicas"},
+	}
+	schema.OpenAPIV3Schema = crdSchema
+	crd := &apiextensionsv1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: crdName,
 		},
-		Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
-			Group:   crv1alpha1.GroupName,
-			Version: crv1alpha1.SchemeGroupVersion.Version,
-			Scope:   apiextensionsv1beta1.NamespaceScoped,
-			Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
+		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+			Group: crv1alpha1.GroupName,
+			//Version: crv1alpha1.SchemeGroupVersion.Version,
+			Names: apiextensionsv1.CustomResourceDefinitionNames{
 				Plural: crv1alpha1.CollectorSetResourcePlural,
 				Kind:   reflect.TypeOf(crv1alpha1.CollectorSet{}).Name(),
 			},
+			Scope: apiextensionsv1.NamespaceScoped,
+			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{{
+				Name:    crv1alpha1.SchemeGroupVersion.Version,
+				Served:  true,
+				Storage: true,
+				Schema:  schema,
+			}},
 		},
 	}
-	_, err := c.APIExtensionsClientset.ApiextensionsV1beta1().CustomResourceDefinitions().Create(crd)
+	_, err := c.APIExtensionsClientset.ApiextensionsV1().CustomResourceDefinitions().Create(crd)
 	if err != nil {
 		return nil, err
 	}
 
 	// wait for CRD being established
 	err = wait.Poll(500*time.Millisecond, 60*time.Second, func() (bool, error) {
-		crd, err = c.APIExtensionsClientset.ApiextensionsV1beta1().CustomResourceDefinitions().Get(crdName, metav1.GetOptions{})
+		crd, err = c.APIExtensionsClientset.ApiextensionsV1().CustomResourceDefinitions().Get(crdName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
 		for _, cond := range crd.Status.Conditions {
 			switch cond.Type {
-			case apiextensionsv1beta1.Established:
-				if cond.Status == apiextensionsv1beta1.ConditionTrue {
+			case apiextensionsv1.Established:
+				if cond.Status == apiextensionsv1.ConditionTrue {
 					return true, err
 				}
-			case apiextensionsv1beta1.NamesAccepted:
-				if cond.Status == apiextensionsv1beta1.ConditionFalse {
+			case apiextensionsv1.NamesAccepted:
+				if cond.Status == apiextensionsv1.ConditionFalse {
 					fmt.Printf("Name conflict: %v\n", cond.Reason)
 				}
 			}
@@ -106,7 +141,7 @@ func (c *Client) CreateCustomResourceDefinition() (*apiextensionsv1beta1.CustomR
 		return false, err
 	})
 	if err != nil {
-		deleteErr := c.APIExtensionsClientset.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(crdName, nil)
+		deleteErr := c.APIExtensionsClientset.ApiextensionsV1().CustomResourceDefinitions().Delete(crdName, nil)
 		if deleteErr != nil {
 			return nil, errors.NewAggregate([]error{err, deleteErr})
 		}
