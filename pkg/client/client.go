@@ -6,6 +6,7 @@ import (
 	"time"
 
 	crv1alpha1 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1"
+	log "github.com/sirupsen/logrus"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -64,49 +65,101 @@ func NewForConfig(cfg *rest.Config) (*Client, *runtime.Scheme, error) {
 	return c, s, nil
 }
 
-// CreateCustomResourceDefinition creates the CRD for collectors.
-func (c *Client) CreateCustomResourceDefinition() (*apiextensionsv1.CustomResourceDefinition, error) {
-	schema := &apiextensionsv1.CustomResourceValidation{}
-	crdSchema := &apiextensionsv1.JSONSchemaProps{
+func getCustomResourceDefinationSchema() *apiextensionsv1.JSONSchemaProps {
+	return &apiextensionsv1.JSONSchemaProps{
 		Description: "collectorset controller's spec schema",
 		Type:        "object",
 		Properties: map[string]apiextensionsv1.JSONSchemaProps{
-			"Replicas": {
-				Description: "The number of collectors to create",
-				Type:        "integer",
-			},
-			"Size": {
-				Description: "The collector size to install. Can be nano, small, medium, or large",
-				Type:        "string",
-			},
-			"GroupID": {
-				Description: "The ID of the group of the collectors",
-				Type:        "integer",
-			},
-			"CollectorVersion": {
-				Description: "The version of the collectors",
-				Type:        "integer",
-			},
-			"UseEA": {
-				Description: "On a collector downloading event, either download the latest EA version or the latest GD version",
-				Type:        "boolean",
+			"spec": {
+				Type: "object",
+				Properties: map[string]apiextensionsv1.JSONSchemaProps{
+					"imageRepository": {
+						Description: "The image repository of the Collector container",
+						Type:        "string",
+					},
+					"imageTag": {
+						Description: "The image tag of the Collector container",
+						Type:        "string",
+					},
+					"imagePullPolicy": {
+						Description: "The image pull policy of the Collector container",
+						Type:        "string",
+					},
+					"replicas": {
+						Description: "The number of collectors to create",
+						Type:        "integer",
+					},
+					"size": {
+						Description: "The collector size to install. Can be nano, small, medium, or large",
+						Type:        "string",
+					},
+					"clusterName": {
+						Description: "The collector clustername",
+						Type:        "string",
+					},
+					"groupID": {
+						Description: "The ID of the group of the collectors",
+						Type:        "integer",
+					},
+					"escalationChainID": {
+						Description: "The ID of the escalation chain of the collectors",
+						Type:        "integer",
+					},
+					"collectorVersion": {
+						Description: "The version of the collectors",
+						Type:        "integer",
+					},
+					"useEA": {
+						Description: "On a collector downloading event, either download the latest EA version or the latest GD version",
+						Type:        "boolean",
+					},
+					"proxyURL": {
+						Description: "The Http/s proxy url of the collectors",
+						Type:        "string",
+					},
+					"secretName": {
+						Description: "The Secret resource name of the collectors",
+						Type:        "string",
+					},
+					"statefulsetspec": {
+						Description: "Collector statefulset template",
+						Type:        "object",
+					},
+					"policy": {
+						Type: "object",
+						Properties: map[string]apiextensionsv1.JSONSchemaProps{
+							"distributionStrategy": {
+								Description: "distribution stratergy policy",
+								Type:        "string",
+							},
+							"orchestrator": {
+								Description: "orchestrator type",
+								Type:        "string",
+							},
+						},
+					},
+				},
 			},
 		},
-		Required: []string{"Size", "Replicas"},
 	}
-	schema.OpenAPIV3Schema = crdSchema
+}
+
+// CreateCustomResourceDefinition creates the CRD for collectors.
+func (c *Client) CreateCustomResourceDefinition() (*apiextensionsv1.CustomResourceDefinition, error) {
+	schema := &apiextensionsv1.CustomResourceValidation{}
+
+	schema.OpenAPIV3Schema = getCustomResourceDefinationSchema()
 	crd := &apiextensionsv1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: crdName,
 		},
 		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 			Group: crv1alpha1.GroupName,
-			//Version: crv1alpha1.SchemeGroupVersion.Version,
 			Names: apiextensionsv1.CustomResourceDefinitionNames{
 				Plural: crv1alpha1.CollectorSetResourcePlural,
 				Kind:   reflect.TypeOf(crv1alpha1.CollectorSet{}).Name(),
 			},
-			Scope: apiextensionsv1.NamespaceScoped,
+			Scope: apiextensionsv1.ClusterScoped,
 			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{{
 				Name:    crv1alpha1.SchemeGroupVersion.Version,
 				Served:  true,
@@ -115,8 +168,10 @@ func (c *Client) CreateCustomResourceDefinition() (*apiextensionsv1.CustomResour
 			}},
 		},
 	}
-	_, err := c.APIExtensionsClientset.ApiextensionsV1().CustomResourceDefinitions().Create(crd)
+
+	crd1, err := c.APIExtensionsClientset.ApiextensionsV1().CustomResourceDefinitions().Create(crd)
 	if err != nil {
+		log.Debugf("error while creating crd- %v", err)
 		return nil, err
 	}
 
@@ -148,7 +203,7 @@ func (c *Client) CreateCustomResourceDefinition() (*apiextensionsv1.CustomResour
 		return nil, err
 	}
 
-	return crd, nil
+	return crd1, nil
 }
 
 // // WaitForCollectorMonitoring creates a collector and waits for it to be ready.
