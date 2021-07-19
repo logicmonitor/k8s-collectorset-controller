@@ -169,7 +169,7 @@ func (c *Client) CreateCustomResourceDefinition() (*apiextensionsv1.CustomResour
 		},
 	}
 
-	crd1, err := c.APIExtensionsClientset.ApiextensionsV1().CustomResourceDefinitions().Create(crd)
+	_, err := c.APIExtensionsClientset.ApiextensionsV1().CustomResourceDefinitions().Create(crd)
 	if err != nil {
 		log.Debugf("error while creating crd- %v", err)
 		return nil, err
@@ -203,7 +203,7 @@ func (c *Client) CreateCustomResourceDefinition() (*apiextensionsv1.CustomResour
 		return nil, err
 	}
 
-	return crd1, nil
+	return crd, nil
 }
 
 // // WaitForCollectorMonitoring creates a collector and waits for it to be ready.
