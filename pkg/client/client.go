@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -67,11 +68,13 @@ func NewForConfig(cfg *rest.Config) (*Client, *runtime.Scheme, error) {
 
 func getCustomResourceDefinationSchema() *apiextensionsv1.JSONSchemaProps {
 	return &apiextensionsv1.JSONSchemaProps{
-		Description: "collectorset controller's spec schema",
+		Description: "collectorset's spec schema",
 		Type:        "object",
+		Required:    []string{"spec"},
 		Properties: map[string]apiextensionsv1.JSONSchemaProps{
 			"spec": {
-				Type: "object",
+				Type:     "object",
+				Required: []string{"imageRepository", "imageTag", "imagePullPolicy", "replicas", "size", "clusterName"},
 				Properties: map[string]apiextensionsv1.JSONSchemaProps{
 					"imageRepository": {
 						Description: "The image repository of the Collector container",
@@ -86,11 +89,11 @@ func getCustomResourceDefinationSchema() *apiextensionsv1.JSONSchemaProps {
 						Type:        "string",
 					},
 					"replicas": {
-						Description: "The number of collectors to create",
+						Description: "The number of collector replicas",
 						Type:        "integer",
 					},
 					"size": {
-						Description: "The collector size to install. Can be nano, small, medium, or large",
+						Description: "The collector size. Available collector sizes: nano, small, medium, large, extra_large, double_extra_large",
 						Type:        "string",
 					},
 					"clusterName": {
@@ -98,15 +101,15 @@ func getCustomResourceDefinationSchema() *apiextensionsv1.JSONSchemaProps {
 						Type:        "string",
 					},
 					"groupID": {
-						Description: "The ID of the group of the collectors",
+						Description: "The groupId of the collector",
 						Type:        "integer",
 					},
 					"escalationChainID": {
-						Description: "The ID of the escalation chain of the collectors",
+						Description: "The escalation chain Id of the collectors",
 						Type:        "integer",
 					},
 					"collectorVersion": {
-						Description: "The version of the collectors",
+						Description: "The Collector version (Fractional numbered version is invalid. For ex: 29.101 is invalid, correct input is 29101)",
 						Type:        "integer",
 					},
 					"useEA": {
@@ -114,7 +117,7 @@ func getCustomResourceDefinationSchema() *apiextensionsv1.JSONSchemaProps {
 						Type:        "boolean",
 					},
 					"proxyURL": {
-						Description: "The Http/s proxy url of the collectors",
+						Description: "The Http/Https proxy url of the collectors",
 						Type:        "string",
 					},
 					"secretName": {
@@ -122,7 +125,7 @@ func getCustomResourceDefinationSchema() *apiextensionsv1.JSONSchemaProps {
 						Type:        "string",
 					},
 					"statefulsetspec": {
-						Description: "Collector statefulset template",
+						Description: "The collector StatefulSet specification for customizations",
 						Type:        "object",
 					},
 					"policy": {
@@ -159,7 +162,7 @@ func (c *Client) CreateCustomResourceDefinition() (*apiextensionsv1.CustomResour
 				Plural: crv1alpha1.CollectorSetResourcePlural,
 				Kind:   reflect.TypeOf(crv1alpha1.CollectorSet{}).Name(),
 			},
-			Scope: apiextensionsv1.ClusterScoped,
+			Scope: apiextensionsv1.NamespaceScoped,
 			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{{
 				Name:    crv1alpha1.SchemeGroupVersion.Version,
 				Served:  true,
@@ -171,7 +174,14 @@ func (c *Client) CreateCustomResourceDefinition() (*apiextensionsv1.CustomResour
 
 	_, err := c.APIExtensionsClientset.ApiextensionsV1().CustomResourceDefinitions().Create(crd)
 	if err != nil {
-		log.Debugf("error while creating crd- %v", err)
+		if apierrors.IsAlreadyExists(err) {
+			_, err := c.APIExtensionsClientset.ApiextensionsV1().CustomResourceDefinitions().Update(crd)
+			if err != nil {
+				log.Errorf("error while updating crd- %v", err)
+				return nil, err
+			}
+		}
+		log.Errorf("error while creating crd- %v", err)
 		return nil, err
 	}
 
