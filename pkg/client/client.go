@@ -113,7 +113,7 @@ func getCustomResourceDefinationSchema() *apiextensionsv1.JSONSchemaProps {
 						Type:        "integer",
 					},
 					"useEA": {
-						Description: "On a collector downloading event, either download the latest EA version or the latest GD version",
+						Description: "Flag to opt for EA Collector versions",
 						Type:        "boolean",
 					},
 					"proxyURL": {
