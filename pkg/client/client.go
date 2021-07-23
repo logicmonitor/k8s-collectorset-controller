@@ -6,7 +6,6 @@ import (
 	"time"
 
 	crv1alpha1 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1"
-	log "github.com/sirupsen/logrus"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -148,6 +147,7 @@ func getCustomResourceDefinationSchema() *apiextensionsv1.JSONSchemaProps {
 }
 
 // CreateCustomResourceDefinition creates the CRD for collectors.
+// nolint
 func (c *Client) CreateCustomResourceDefinition() (*apiextensionsv1.CustomResourceDefinition, error) {
 	schema := &apiextensionsv1.CustomResourceValidation{}
 
@@ -175,14 +175,11 @@ func (c *Client) CreateCustomResourceDefinition() (*apiextensionsv1.CustomResour
 	_, err := c.APIExtensionsClientset.ApiextensionsV1().CustomResourceDefinitions().Create(crd)
 	if err != nil {
 		if apierrors.IsAlreadyExists(err) {
-			_, err := c.APIExtensionsClientset.ApiextensionsV1().CustomResourceDefinitions().Update(crd)
-			if err != nil {
-				log.Errorf("error while updating crd- %v", err)
+			if err := c.updateCRD(crd); err != nil {
 				return nil, err
 			}
 		}
-		log.Errorf("error while creating crd- %v", err)
-		return nil, err
+		return nil, fmt.Errorf("error while creating crd- %v", err)
 	}
 
 	// wait for CRD being established
@@ -214,6 +211,22 @@ func (c *Client) CreateCustomResourceDefinition() (*apiextensionsv1.CustomResour
 	}
 
 	return crd, nil
+}
+
+func (c *Client) updateCRD(crd *apiextensionsv1.CustomResourceDefinition) error {
+	// Get current CRD object for retrieving ResourceVersion
+	// ResourceVersion is required for updating newer CRD object
+	existingCrd, err := c.APIExtensionsClientset.ApiextensionsV1().CustomResourceDefinitions().Get(crdName, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("error while retrieving existing crd- %v", err)
+	}
+
+	crd.SetResourceVersion(existingCrd.GetResourceVersion())
+	_, err1 := c.APIExtensionsClientset.ApiextensionsV1().CustomResourceDefinitions().Update(crd)
+	if err1 != nil {
+		return fmt.Errorf("error while updating crd- %v", err1)
+	}
+	return nil
 }
 
 // // WaitForCollectorMonitoring creates a collector and waits for it to be ready.
