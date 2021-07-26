@@ -1,6 +1,7 @@
 package client
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"time"
@@ -65,9 +66,22 @@ func NewForConfig(cfg *rest.Config) (*Client, *runtime.Scheme, error) {
 	return c, s, nil
 }
 
+func getMarshalText(str string) []byte {
+	out, err := json.Marshal(str)
+	if err != nil {
+		return []byte("")
+	}
+	return out
+}
+
 func getCustomResourceDefinationSchema() *apiextensionsv1.JSONSchemaProps {
+	minValue := 0.0
+	minReplicas := 1.0
+	minGroupID := -1.0
+	defaultReplicas, _ := json.Marshal(1) //nolint:gosec
+
 	return &apiextensionsv1.JSONSchemaProps{
-		Description: "collectorset's spec schema",
+		Description: "The collectorset specefication schema",
 		Type:        "object",
 		Required:    []string{"spec"},
 		Properties: map[string]apiextensionsv1.JSONSchemaProps{
@@ -76,51 +90,101 @@ func getCustomResourceDefinationSchema() *apiextensionsv1.JSONSchemaProps {
 				Required: []string{"imageRepository", "imageTag", "imagePullPolicy", "replicas", "size", "clusterName"},
 				Properties: map[string]apiextensionsv1.JSONSchemaProps{
 					"imageRepository": {
-						Description: "The image repository of the Collector container",
+						Description: "The image repository of the collector container",
 						Type:        "string",
+						Default: &apiextensionsv1.JSON{
+							Raw: getMarshalText("logicmonitor/collector"),
+						},
 					},
 					"imageTag": {
-						Description: "The image tag of the Collector container",
+						Description: "The image tag of the collector container",
 						Type:        "string",
+						Default: &apiextensionsv1.JSON{
+							Raw: getMarshalText("latest"),
+						},
 					},
 					"imagePullPolicy": {
-						Description: "The image pull policy of the Collector container",
+						Description: "The image pull policy of the collector container",
 						Type:        "string",
+						Default: &apiextensionsv1.JSON{
+							Raw: getMarshalText("Always"),
+						},
+						Enum: []apiextensionsv1.JSON{
+							{
+								Raw: getMarshalText("Always"),
+							},
+							{
+								Raw: getMarshalText("IfNotPresent"),
+							},
+							{
+								Raw: getMarshalText("Never"),
+							},
+						},
 					},
 					"replicas": {
 						Description: "The number of collector replicas",
 						Type:        "integer",
+						Minimum:     &minReplicas,
+						Default: &apiextensionsv1.JSON{
+							Raw: defaultReplicas,
+						},
 					},
 					"size": {
 						Description: "The collector size. Available collector sizes: nano, small, medium, large, extra_large, double_extra_large",
 						Type:        "string",
+						Default: &apiextensionsv1.JSON{
+							Raw: getMarshalText("nano"),
+						},
+						Enum: []apiextensionsv1.JSON{
+							{
+								Raw: getMarshalText("nano"),
+							},
+							{
+								Raw: getMarshalText("small"),
+							},
+							{
+								Raw: getMarshalText("medium"),
+							},
+							{
+								Raw: getMarshalText("large"),
+							},
+							{
+								Raw: getMarshalText("extra_large"),
+							},
+							{
+								Raw: getMarshalText("double_extra_large"),
+							},
+						},
 					},
 					"clusterName": {
-						Description: "The collector clustername",
+						Description: "The clustername of the collector",
 						Type:        "string",
 					},
 					"groupID": {
 						Description: "The groupId of the collector",
 						Type:        "integer",
+						Minimum:     &minGroupID,
 					},
 					"escalationChainID": {
 						Description: "The escalation chain Id of the collectors",
 						Type:        "integer",
+						Minimum:     &minValue,
 					},
 					"collectorVersion": {
-						Description: "The Collector version (Fractional numbered version is invalid. For ex: 29.101 is invalid, correct input is 29101)",
+						Description: "The collector version (Fractional numbered version is invalid. For ex: 29.101 is invalid, correct input is 29101)",
 						Type:        "integer",
+						Minimum:     &minValue,
 					},
 					"useEA": {
-						Description: "Flag to opt for EA Collector versions",
+						Description: "Flag to opt for EA collector versions",
 						Type:        "boolean",
 					},
 					"proxyURL": {
-						Description: "The Http/Https proxy url of the collectors",
+						Description: "The Http/Https proxy url of the collector",
 						Type:        "string",
 					},
 					"secretName": {
-						Description: "The Secret resource name of the collectors",
+						Description: "The Secret resource name of the collector",
 						Type:        "string",
 					},
 					"statefulsetspec": {
@@ -131,12 +195,18 @@ func getCustomResourceDefinationSchema() *apiextensionsv1.JSONSchemaProps {
 						Type: "object",
 						Properties: map[string]apiextensionsv1.JSONSchemaProps{
 							"distributionStrategy": {
-								Description: "distribution stratergy policy",
+								Description: "Distribution strategy to provide collector ID to the client requests from available running collectors",
 								Type:        "string",
+								Default: &apiextensionsv1.JSON{
+									Raw: getMarshalText("RoundRobin"),
+								},
 							},
 							"orchestrator": {
-								Description: "orchestrator type",
+								Description: "The container orchestration platform designed to automate the deployment, scaling, and management of containerized applications",
 								Type:        "string",
+								Default: &apiextensionsv1.JSON{
+									Raw: getMarshalText("Kubernetes"),
+								},
 							},
 						},
 					},
@@ -147,7 +217,7 @@ func getCustomResourceDefinationSchema() *apiextensionsv1.JSONSchemaProps {
 }
 
 // CreateCustomResourceDefinition creates the CRD for collectors.
-// nolint
+// nolint: gocyclo
 func (c *Client) CreateCustomResourceDefinition() (*apiextensionsv1.CustomResourceDefinition, error) {
 	schema := &apiextensionsv1.CustomResourceValidation{}
 
@@ -175,11 +245,12 @@ func (c *Client) CreateCustomResourceDefinition() (*apiextensionsv1.CustomResour
 	_, err := c.APIExtensionsClientset.ApiextensionsV1().CustomResourceDefinitions().Create(crd)
 	if err != nil {
 		if apierrors.IsAlreadyExists(err) {
-			if err := c.updateCRD(crd); err != nil {
-				return nil, err
+			if err1 := c.updateCRD(crd); err1 != nil {
+				return nil, err1
 			}
+			return nil, nil
 		}
-		return nil, fmt.Errorf("error while creating crd- %v", err)
+		return nil, fmt.Errorf("error while creating crd- %w", err)
 	}
 
 	// wait for CRD being established
@@ -218,13 +289,13 @@ func (c *Client) updateCRD(crd *apiextensionsv1.CustomResourceDefinition) error 
 	// ResourceVersion is required for updating newer CRD object
 	existingCrd, err := c.APIExtensionsClientset.ApiextensionsV1().CustomResourceDefinitions().Get(crdName, metav1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("error while retrieving existing crd- %v", err)
+		return fmt.Errorf("error while retrieving existing crd- %w", err)
 	}
 
 	crd.SetResourceVersion(existingCrd.GetResourceVersion())
 	_, err1 := c.APIExtensionsClientset.ApiextensionsV1().CustomResourceDefinitions().Update(crd)
 	if err1 != nil {
-		return fmt.Errorf("error while updating crd- %v", err1)
+		return fmt.Errorf("error while updating crd- %w", err1)
 	}
 	return nil
 }
