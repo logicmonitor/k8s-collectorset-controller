@@ -66,14 +66,6 @@ func NewForConfig(cfg *rest.Config) (*Client, *runtime.Scheme, error) {
 	return c, s, nil
 }
 
-func toBytes(str string) []byte {
-	out, err := json.Marshal(str)
-	if err != nil {
-		return []byte("")
-	}
-	return out
-}
-
 func getCustomResourceDefinationSchema() *apiextensionsv1.JSONSchemaProps {
 	minValue := 0.0
 	minReplicas := 1.0
@@ -93,31 +85,31 @@ func getCustomResourceDefinationSchema() *apiextensionsv1.JSONSchemaProps {
 						Description: "The image repository of the collector container",
 						Type:        "string",
 						Default: &apiextensionsv1.JSON{
-							Raw: toBytes("logicmonitor/collector"),
+							Raw: []byte("\"logicmonitor/collector\""),
 						},
 					},
 					"imageTag": {
 						Description: "The image tag of the collector container",
 						Type:        "string",
 						Default: &apiextensionsv1.JSON{
-							Raw: toBytes("latest"),
+							Raw: []byte("\"latest\""),
 						},
 					},
 					"imagePullPolicy": {
 						Description: "The image pull policy of the collector container",
 						Type:        "string",
 						Default: &apiextensionsv1.JSON{
-							Raw: toBytes("Always"),
+							Raw: []byte("\"Always\""),
 						},
 						Enum: []apiextensionsv1.JSON{
 							{
-								Raw: toBytes("Always"),
+								Raw: []byte("\"Always\""),
 							},
 							{
-								Raw: toBytes("IfNotPresent"),
+								Raw: []byte("\"IfNotPresent\""),
 							},
 							{
-								Raw: toBytes("Never"),
+								Raw: []byte("\"Never\""),
 							},
 						},
 					},
@@ -133,26 +125,26 @@ func getCustomResourceDefinationSchema() *apiextensionsv1.JSONSchemaProps {
 						Description: "The collector size. Available collector sizes: nano, small, medium, large, extra_large, double_extra_large",
 						Type:        "string",
 						Default: &apiextensionsv1.JSON{
-							Raw: toBytes("nano"),
+							Raw: []byte("\"nano\""),
 						},
 						Enum: []apiextensionsv1.JSON{
 							{
-								Raw: toBytes("nano"),
+								Raw: []byte("\"nano\""),
 							},
 							{
-								Raw: toBytes("small"),
+								Raw: []byte("\"small\""),
 							},
 							{
-								Raw: toBytes("medium"),
+								Raw: []byte("\"medium\""),
 							},
 							{
-								Raw: toBytes("large"),
+								Raw: []byte("\"large\""),
 							},
 							{
-								Raw: toBytes("extra_large"),
+								Raw: []byte("\"extra_large\""),
 							},
 							{
-								Raw: toBytes("double_extra_large"),
+								Raw: []byte("\"double_extra_large\""),
 							},
 						},
 					},
@@ -198,14 +190,14 @@ func getCustomResourceDefinationSchema() *apiextensionsv1.JSONSchemaProps {
 								Description: "Distribution strategy to provide collector ID to the client requests from available running collectors",
 								Type:        "string",
 								Default: &apiextensionsv1.JSON{
-									Raw: toBytes("RoundRobin"),
+									Raw: []byte("\"RoundRobin\""),
 								},
 							},
 							"orchestrator": {
 								Description: "The container orchestration platform designed to automate the deployment, scaling, and management of containerized applications",
 								Type:        "string",
 								Default: &apiextensionsv1.JSON{
-									Raw: toBytes("Kubernetes"),
+									Raw: []byte("\"Kubernetes\""),
 								},
 							},
 						},
