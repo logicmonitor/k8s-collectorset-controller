@@ -225,12 +225,24 @@ func (c *Client) CreateCustomResourceDefinition() (*apiextensionsv1.CustomResour
 				Kind:   reflect.TypeOf(crv1alpha1.CollectorSet{}).Name(),
 			},
 			Scope: apiextensionsv1.NamespaceScoped,
-			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{{
-				Name:    crv1alpha1.SchemeGroupVersion.Version,
-				Served:  true,
-				Storage: true,
-				Schema:  schema,
-			}},
+			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+				{
+					Name:    crv1alpha1.SchemeGroupVersion.Version,
+					Served:  false,
+					Storage: false,
+					Schema: &apiextensionsv1.CustomResourceValidation{
+						OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
+							Description: "The collectorset specification schema",
+							Type:        "object",
+						},
+					},
+				},
+				{
+					Name:    "v1alpha2",
+					Served:  true,
+					Storage: true,
+					Schema:  schema,
+				}},
 		},
 	}
 
@@ -242,7 +254,7 @@ func (c *Client) CreateCustomResourceDefinition() (*apiextensionsv1.CustomResour
 			}
 			return nil, nil
 		}
-		return nil, fmt.Errorf("error while creating crd- %w", err)
+		return nil, fmt.Errorf("error while creating crd: %w", err)
 	}
 
 	// wait for CRD being established
@@ -281,13 +293,13 @@ func (c *Client) updateCRD(crd *apiextensionsv1.CustomResourceDefinition) error 
 	// ResourceVersion is required for updating newer CRD object
 	existingCrd, err := c.APIExtensionsClientset.ApiextensionsV1().CustomResourceDefinitions().Get(crdName, metav1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("error while retrieving existing crd- %w", err)
+		return fmt.Errorf("error while retrieving existing crd: %w", err)
 	}
 
 	crd.SetResourceVersion(existingCrd.GetResourceVersion())
 	_, err1 := c.APIExtensionsClientset.ApiextensionsV1().CustomResourceDefinitions().Update(crd)
 	if err1 != nil {
-		return fmt.Errorf("error while updating crd- %w", err1)
+		return fmt.Errorf("error while updating crd: %w", err1)
 	}
 	return nil
 }
