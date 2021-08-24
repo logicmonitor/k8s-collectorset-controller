@@ -21,8 +21,8 @@ WORKDIR $GOPATH/src/github.com/logicmonitor/k8s-collectorset-controller
 COPY ./ ./
 RUN deepcopy-gen \
   --go-header-file="hack/boilerplate.go.txt" \
-  --input-dirs="github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1" \
-  --bounding-dirs "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1" \
+  --input-dirs="github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha2" \
+  --bounding-dirs "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha2" \
   --output-file-base zz_generated.deepcopy
 
 FROM golang:1.14 as build
@@ -48,6 +48,7 @@ RUN apk --update add ca-certificates \
 WORKDIR /app
 COPY --from=api /go/src/github.com/logicmonitor/k8s-collectorset-controller/api/* /tmp/
 COPY --from=codegen /go/src/github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1/zz_generated.deepcopy.go /tmp/
+COPY --from=codegen /go/src/github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha2/zz_generated.deepcopy.go /tmp/
 COPY --from=build /collectorset-controller /bin
 COPY --from=test /coverage.txt /coverage.txt
 

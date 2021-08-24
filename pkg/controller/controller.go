@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	crv1alpha1 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1"
+	crv1alpha1 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha2"
 	collectorsetclient "github.com/logicmonitor/k8s-collectorset-controller/pkg/client"
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/config"
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/distributor"

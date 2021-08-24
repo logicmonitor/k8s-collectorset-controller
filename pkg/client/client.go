@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"time"
 
-	crv1alpha1 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1"
+	crv1alpha1 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha2"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -42,7 +42,7 @@ func NewForConfig(cfg *rest.Config) (*Client, *runtime.Scheme, error) {
 	}
 
 	config := *cfg
-	config.GroupVersion = &crv1alpha1.SchemeGroupVersion
+	config.GroupVersion = &crv1alpha1.SchemaGroupVersion
 	config.APIPath = "/apis"
 	config.ContentType = runtime.ContentTypeJSON
 	config.NegotiatedSerializer = serializer.NewCodecFactory(s)
@@ -227,7 +227,7 @@ func (c *Client) CreateCustomResourceDefinition() (*apiextensionsv1.CustomResour
 			Scope: apiextensionsv1.NamespaceScoped,
 			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
 				{
-					Name:    crv1alpha1.SchemeGroupVersion.Version,
+					Name:    "v1alpha1",
 					Served:  false,
 					Storage: false,
 					Schema: &apiextensionsv1.CustomResourceValidation{

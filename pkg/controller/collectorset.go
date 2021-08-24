@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	crv1alpha1 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1"
+	crv1alpha1 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha2"
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/constants"
 	"github.com/logicmonitor/lm-sdk-go/client"
 	"github.com/logicmonitor/lm-sdk-go/client/lm"
