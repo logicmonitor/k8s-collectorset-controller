@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"time"
 
-	crv1alpha1 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha2"
+	crv1alpha2 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha2"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -19,7 +19,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-const crdName = crv1alpha1.CollectorSetResourcePlural + "." + crv1alpha1.GroupName
+const crdName = crv1alpha2.CollectorSetResourcePlural + "." + crv1alpha2.GroupName
 
 // Client represents the CollectorSet client.
 type Client struct {
@@ -31,7 +31,7 @@ type Client struct {
 // NewForConfig instantiates and returns the client and scheme.
 func NewForConfig(cfg *rest.Config) (*Client, *runtime.Scheme, error) {
 	s := runtime.NewScheme()
-	err := crv1alpha1.AddToScheme(s)
+	err := crv1alpha2.AddToScheme(s)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -42,7 +42,7 @@ func NewForConfig(cfg *rest.Config) (*Client, *runtime.Scheme, error) {
 	}
 
 	config := *cfg
-	config.GroupVersion = &crv1alpha1.SchemaGroupVersion
+	config.GroupVersion = &crv1alpha2.SchemaGroupVersion
 	config.APIPath = "/apis"
 	config.ContentType = runtime.ContentTypeJSON
 	config.NegotiatedSerializer = serializer.NewCodecFactory(s)
@@ -212,17 +212,17 @@ func getCustomResourceDefinationSchema() *apiextensionsv1.JSONSchemaProps {
 // nolint: gocyclo
 func (c *Client) CreateCustomResourceDefinition() (*apiextensionsv1.CustomResourceDefinition, error) {
 	schema := &apiextensionsv1.CustomResourceValidation{}
-
+	preserveUnknownFields := true
 	schema.OpenAPIV3Schema = getCustomResourceDefinationSchema()
 	crd := &apiextensionsv1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: crdName,
 		},
 		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
-			Group: crv1alpha1.GroupName,
+			Group: crv1alpha2.GroupName,
 			Names: apiextensionsv1.CustomResourceDefinitionNames{
-				Plural: crv1alpha1.CollectorSetResourcePlural,
-				Kind:   reflect.TypeOf(crv1alpha1.CollectorSet{}).Name(),
+				Plural: crv1alpha2.CollectorSetResourcePlural,
+				Kind:   reflect.TypeOf(crv1alpha2.CollectorSet{}).Name(),
 			},
 			Scope: apiextensionsv1.NamespaceScoped,
 			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
@@ -234,6 +234,7 @@ func (c *Client) CreateCustomResourceDefinition() (*apiextensionsv1.CustomResour
 						OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
 							Description: "The collectorset specification schema",
 							Type:        "object",
+							XPreserveUnknownFields : &preserveUnknownFields,
 						},
 					},
 				},
@@ -307,14 +308,14 @@ func (c *Client) updateCRD(crd *apiextensionsv1.CustomResourceDefinition) error 
 // // WaitForCollectorMonitoring creates a collector and waits for it to be ready.
 // func WaitForCollectorMonitoring(clientset *rest.RESTClient, name string) error {
 // 	return wait.Poll(100*time.Millisecond, 10*time.Second, func() (bool, error) {
-// 		var collector crv1alpha1.CollectorSet
+// 		var collector crv1alpha2.CollectorSet
 // 		err := clientset.Get().
-// 			Resource(crv1alpha1.CollectorSetResourcePlural).
+// 			Resource(crv1alpha2.CollectorSetResourcePlural).
 // 			Namespace(apiv1.NamespaceDefault).
 // 			Name(name).
 // 			Do().Into(&collector)
 
-// 		if err == nil && collector.Status.State == crv1alpha1.CollectorSetStateMonitoring {
+// 		if err == nil && collector.Status.State == crv1alpha2.CollectorSetStateMonitoring {
 // 			return true, nil
 // 		}
 

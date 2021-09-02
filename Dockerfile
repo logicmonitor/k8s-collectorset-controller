@@ -47,7 +47,6 @@ RUN apk --update add ca-certificates \
   && rm -rf /var/lib/apk/*
 WORKDIR /app
 COPY --from=api /go/src/github.com/logicmonitor/k8s-collectorset-controller/api/* /tmp/
-COPY --from=codegen /go/src/github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1/zz_generated.deepcopy.go /tmp/
 COPY --from=codegen /go/src/github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha2/zz_generated.deepcopy.go /tmp/
 COPY --from=build /collectorset-controller /bin
 COPY --from=test /coverage.txt /coverage.txt

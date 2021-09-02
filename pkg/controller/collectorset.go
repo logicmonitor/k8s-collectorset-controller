@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	crv1alpha1 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha2"
+	crv1alpha2 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha2"
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/constants"
 	"github.com/logicmonitor/lm-sdk-go/client"
 	"github.com/logicmonitor/lm-sdk-go/client/lm"
@@ -22,7 +22,7 @@ import (
 
 // CreateOrUpdateCollectorSet creates a replicaset for each collector in
 // a CollectorSet
-func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, controller *Controller) ([]int32, error) {
+func CreateOrUpdateCollectorSet(collectorset *crv1alpha2.CollectorSet, controller *Controller) ([]int32, error) {
 	groupID := collectorset.Spec.GroupID
 	if groupID == 0 || !checkCollectorGroupExistsByID(controller.LogicmonitorClient, groupID) {
 		groupName := constants.ClusterCollectorGroupPrefix + collectorset.Spec.ClusterName
@@ -66,7 +66,7 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, controlle
 	return collectorset.Status.IDs, nil
 }
 
-func createStsObject(collectorset *crv1alpha1.CollectorSet, ids []int32, ignoreSSL bool) (*appsv1.StatefulSet, error) {
+func createStsObject(collectorset *crv1alpha2.CollectorSet, ids []int32, ignoreSSL bool) (*appsv1.StatefulSet, error) {
 
 	secretIsOptional := false
 	collectorSize := strings.ToLower(collectorset.Spec.Size)
@@ -217,7 +217,7 @@ func createStsObject(collectorset *crv1alpha1.CollectorSet, ids []int32, ignoreS
 	return &statefulset, nil
 }
 
-func getCollectorImage(collectorset *crv1alpha1.CollectorSet) string {
+func getCollectorImage(collectorset *crv1alpha2.CollectorSet) string {
 	if collectorset.Spec.ImageRepository == "" {
 		return constants.DefaultCollectorImage
 	}
@@ -228,7 +228,7 @@ func getCollectorImage(collectorset *crv1alpha1.CollectorSet) string {
 	return collectorset.Spec.ImageRepository + ":" + imageTag
 }
 
-func getCollectorImagePullPolicy(collectorset *crv1alpha1.CollectorSet) (apiv1.PullPolicy, error) {
+func getCollectorImagePullPolicy(collectorset *crv1alpha2.CollectorSet) (apiv1.PullPolicy, error) {
 	if collectorset.Spec.ImagePullPolicy == "" {
 		return constants.DefaultCollectorImagePullPolicy, nil
 	}
@@ -240,7 +240,7 @@ func getCollectorImagePullPolicy(collectorset *crv1alpha1.CollectorSet) (apiv1.P
 
 }
 
-func setProxyConfiguration(collectorset *crv1alpha1.CollectorSet, statefulset *appsv1.StatefulSet) {
+func setProxyConfiguration(collectorset *crv1alpha2.CollectorSet, statefulset *appsv1.StatefulSet) {
 	if collectorset.Spec.ProxyURL == "" {
 		return
 	}
@@ -326,7 +326,7 @@ func updateCollectors(client *client.LMSdkGo, ids []int32) error {
 }
 
 // DeleteCollectorSet deletes the collectorset.
-func DeleteCollectorSet(collectorset *crv1alpha1.CollectorSet, client clientset.Interface) error {
+func DeleteCollectorSet(collectorset *crv1alpha2.CollectorSet, client clientset.Interface) error {
 	data := []byte(`[{"op":"add","path":"/spec/replicas","value": 0}]`)
 	if _, err := client.AppsV1().StatefulSets(collectorset.Namespace).Patch(collectorset.Name, types.JSONPatchType, data); err != nil {
 		return err
@@ -349,7 +349,7 @@ func checkCollectorGroupExistsByID(client *client.LMSdkGo, id int32) bool {
 	return true
 }
 
-func getCollectorGroupID(client *client.LMSdkGo, name string, collectorset *crv1alpha1.CollectorSet) (int32, error) {
+func getCollectorGroupID(client *client.LMSdkGo, name string, collectorset *crv1alpha2.CollectorSet) (int32, error) {
 	params := lm.NewGetCollectorGroupListParams()
 	filter := fmt.Sprintf("name:\"%s\"", name)
 	params.SetFilter(&filter)
@@ -368,7 +368,7 @@ func getCollectorGroupID(client *client.LMSdkGo, name string, collectorset *crv1
 	return -1, fmt.Errorf("failed to get collector group ID")
 }
 
-func addCollectorGroup(client *client.LMSdkGo, name string, collectorset *crv1alpha1.CollectorSet) (int32, error) {
+func addCollectorGroup(client *client.LMSdkGo, name string, collectorset *crv1alpha2.CollectorSet) (int32, error) {
 
 	kubernetesLabelApp := constants.CustomPropertyKubernetesLabelApp
 	kubernetesLabelAppValue := constants.CustomPropertyKubernetesLabelAppValue
@@ -393,7 +393,7 @@ func addCollectorGroup(client *client.LMSdkGo, name string, collectorset *crv1al
 }
 
 // $(statefulset name)-$(ordinal)
-func getCollectorIDs(client *client.LMSdkGo, groupID int32, collectorset *crv1alpha1.CollectorSet) ([]int32, error) {
+func getCollectorIDs(client *client.LMSdkGo, groupID int32, collectorset *crv1alpha2.CollectorSet) ([]int32, error) {
 	var ids []int32
 	for ordinal := int32(0); ordinal < *collectorset.Spec.Replicas; ordinal++ {
 		name := fmt.Sprintf("%s%s-%d", constants.ClusterCollectorGroupPrefix, collectorset.Spec.ClusterName, ordinal)
