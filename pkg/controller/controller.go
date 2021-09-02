@@ -161,19 +161,6 @@ func (c *Controller) deleteFunc(obj interface{}) {
 	log.Infof("Finished deleting CollectorSet: %s", collectorset.Name)
 }
 
-// func (c *Controller) listCollectorSets() (*crv1alpha2.CollectorSetList, error) {
-// 	collectorsetList := &crv1alpha2.CollectorSetList{}
-// 	err := c.RESTClient.Get().
-// 		Resource(crv1alpha2.CollectorSetResourcePlural).
-// 		Do().
-// 		Into(collectorsetList)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("Failed to get CollectorSet list: %v", err)
-// 	}
-
-// 	return collectorsetList, nil
-// }
-
 func (c *Controller) updateCollectorSetStatus(collectorset *crv1alpha2.CollectorSet, ids []int32) (*crv1alpha2.CollectorSet, error) {
 	collectorsetCopy := collectorset.DeepCopy()
 	collectorsetCopy.Status = crv1alpha2.CollectorSetStatus{

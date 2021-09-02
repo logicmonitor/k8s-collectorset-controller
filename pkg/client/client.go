@@ -304,21 +304,3 @@ func (c *Client) updateCRD(crd *apiextensionsv1.CustomResourceDefinition) error 
 	}
 	return nil
 }
-
-// // WaitForCollectorMonitoring creates a collector and waits for it to be ready.
-// func WaitForCollectorMonitoring(clientset *rest.RESTClient, name string) error {
-// 	return wait.Poll(100*time.Millisecond, 10*time.Second, func() (bool, error) {
-// 		var collector crv1alpha2.CollectorSet
-// 		err := clientset.Get().
-// 			Resource(crv1alpha2.CollectorSetResourcePlural).
-// 			Namespace(apiv1.NamespaceDefault).
-// 			Name(name).
-// 			Do().Into(&collector)
-
-// 		if err == nil && collector.Status.State == crv1alpha2.CollectorSetStateMonitoring {
-// 			return true, nil
-// 		}
-
-// 		return false, err
-// 	})
-// }
