@@ -232,9 +232,9 @@ func (c *Client) CreateCustomResourceDefinition() (*apiextensionsv1.CustomResour
 					Storage: false,
 					Schema: &apiextensionsv1.CustomResourceValidation{
 						OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
-							Description: "The collectorset specification schema",
-							Type:        "object",
-							XPreserveUnknownFields : &preserveUnknownFields,
+							Description:            "The collectorset specification schema",
+							Type:                   "object",
+							XPreserveUnknownFields: &preserveUnknownFields,
 						},
 					},
 				},
