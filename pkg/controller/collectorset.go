@@ -12,7 +12,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -67,7 +66,6 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha2.CollectorSet, controlle
 }
 
 func createStsObject(collectorset *crv1alpha2.CollectorSet, ids []int32, ignoreSSL bool) (*appsv1.StatefulSet, error) {
-
 	secretIsOptional := false
 	collectorSize := strings.ToLower(collectorset.Spec.Size)
 	log.Infof("Collector size is %s", collectorSize)
@@ -190,11 +188,11 @@ func createStsObject(collectorset *crv1alpha2.CollectorSet, ids []int32, ignoreS
 				},
 				{
 					Name:  "collector_version",
-					Value: fmt.Sprint(collectorset.Spec.CollectorVersion), //the default value is 0, santaba will assign the latest version
+					Value: fmt.Sprint(collectorset.Spec.CollectorVersion), // the default value is 0, santaba will assign the latest version
 				},
 				{
 					Name:  "use_ea",
-					Value: fmt.Sprint(collectorset.Spec.UseEA), //the default value is false, santaba will assign the latest GD version
+					Value: fmt.Sprint(collectorset.Spec.UseEA), // the default value is false, santaba will assign the latest GD version
 				},
 				{
 					Name:  "COLLECTOR_IDS",
@@ -202,7 +200,7 @@ func createStsObject(collectorset *crv1alpha2.CollectorSet, ids []int32, ignoreS
 				},
 				{
 					Name:  "ignore_ssl",
-					Value: fmt.Sprint(ignoreSSL), //the default value is false
+					Value: fmt.Sprint(ignoreSSL), // the default value is false
 				},
 			},
 			Resources: getResourceRequirements(collectorSize),
@@ -237,7 +235,6 @@ func getCollectorImagePullPolicy(collectorset *crv1alpha2.CollectorSet) (apiv1.P
 		return collectorset.Spec.ImagePullPolicy, nil
 	}
 	return "", fmt.Errorf("unsupported imagePullPolicy value: %v, supported values: [%v, %v, %v]", collectorset.Spec.ImagePullPolicy, apiv1.PullAlways, apiv1.PullNever, apiv1.PullIfNotPresent)
-
 }
 
 func setProxyConfiguration(collectorset *crv1alpha2.CollectorSet, statefulset *appsv1.StatefulSet) {
@@ -282,17 +279,17 @@ func setProxyConfiguration(collectorset *crv1alpha2.CollectorSet, statefulset *a
 	}
 }
 
-func validateTolerations(tolerations []v1.Toleration) {
+func validateTolerations(tolerations []apiv1.Toleration) {
 	valid := true
 	if tolerations != nil {
 		for _, toleration := range tolerations {
-			if toleration.Operator == v1.TolerationOpExists && toleration.Value != "" {
+			if toleration.Operator == apiv1.TolerationOpExists && toleration.Value != "" {
 				log.Errorf("Value must be empty when 'operator' is 'Exists'. Toleration: %v", toleration)
 				valid = false
-			} else if toleration.Operator != v1.TolerationOpExists && toleration.Key == "" {
+			} else if toleration.Operator != apiv1.TolerationOpExists && toleration.Key == "" {
 				log.Errorf("Operator must be 'Exists' when 'key' is empty. Toleration: %v", toleration)
 				valid = false
-			} else if toleration.Effect != v1.TaintEffectNoExecute && toleration.TolerationSeconds != nil {
+			} else if toleration.Effect != apiv1.TaintEffectNoExecute && toleration.TolerationSeconds != nil {
 				log.Errorf("Effect must be 'NoExecute' when 'tolerationSeconds' is set. Toleration: %v", toleration)
 				valid = false
 			}
@@ -369,7 +366,6 @@ func getCollectorGroupID(client *client.LMSdkGo, name string, collectorset *crv1
 }
 
 func addCollectorGroup(client *client.LMSdkGo, name string, collectorset *crv1alpha2.CollectorSet) (int32, error) {
-
 	kubernetesLabelApp := constants.CustomPropertyKubernetesLabelApp
 	kubernetesLabelAppValue := constants.CustomPropertyKubernetesLabelAppValue
 	autoClusterName := constants.CustomPropertyAutoClusterName

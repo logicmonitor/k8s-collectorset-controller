@@ -40,10 +40,10 @@ type CollectorSetSpec struct {
 	Replicas                 *int32                 `json:"replicas"`
 	Size                     string                 `json:"size,omitempty"`
 	ClusterName              string                 `json:"clusterName"`
-	GroupID                  int32                  `json:"groupID,omitempty"`           //default value is 0, it means no group is offered
-	EscalationChainID        int32                  `json:"escalationChainID,omitempty"` //default value is 0, it means disable notification
-	CollectorVersion         int32                  `json:"collectorVersion,omitempty"`  //default value is 0, it means the latest GD version
-	UseEA                    bool                   `json:"useEA,omitempty"`             //default value is false, it means the latest GD version
+	GroupID                  int32                  `json:"groupID,omitempty"`           // default value is 0, it means no group is offered
+	EscalationChainID        int32                  `json:"escalationChainID,omitempty"` // default value is 0, it means disable notification
+	CollectorVersion         int32                  `json:"collectorVersion,omitempty"`  // default value is 0, it means the latest GD version
+	UseEA                    bool                   `json:"useEA,omitempty"`             // default value is false, it means the latest GD version
 	Policy                   *CollectorSetPolicy    `json:"policy"`
 	ProxyURL                 string                 `json:"proxyURL,omitempty"`
 	SecretName               string                 `json:"secretName,omitempty"`

@@ -243,7 +243,8 @@ func (c *Client) CreateCustomResourceDefinition() (*apiextensionsv1.CustomResour
 					Served:  true,
 					Storage: true,
 					Schema:  schema,
-				}},
+				},
+			},
 		},
 	}
 

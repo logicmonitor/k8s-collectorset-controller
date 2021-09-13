@@ -17,8 +17,10 @@ var (
 const GroupName = "logicmonitor.com"
 
 // SchemeGroupVersion is the group version used to register these objects.
-var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha1"}
-var SchemeGroupVersionInternal = schema.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
+var (
+	SchemeGroupVersion         = schema.GroupVersion{Group: GroupName, Version: "v1alpha1"}
+	SchemeGroupVersionInternal = schema.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
+)
 
 // Resource takes an unqualified resource and returns a Group-qualified GroupResource.
 func Resource(resource string) schema.GroupResource {
@@ -37,6 +39,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&CollectorSet{},
 		&CollectorSetList{},
 	)
-	//metav1.AddToGroupVersion(scheme, SchemeGroupVersionInternal)
+	// metav1.AddToGroupVersion(scheme, SchemeGroupVersionInternal)
 	return nil
 }

@@ -175,7 +175,6 @@ func (c *Controller) updateCollectorSetStatus(collectorset *crv1alpha2.Collector
 		Body(collectorsetCopy).
 		Do().
 		Error()
-
 	if err != nil {
 		return nil, fmt.Errorf("Failed to update status: %v", err)
 	}
