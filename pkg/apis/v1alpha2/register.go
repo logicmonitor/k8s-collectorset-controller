@@ -1,4 +1,4 @@
-package v1alpha1
+package v1alpha2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,22 +18,22 @@ const GroupName = "logicmonitor.com"
 
 // SchemeGroupVersion is the group version used to register these objects.
 var (
-	SchemeGroupVersion         = schema.GroupVersion{Group: GroupName, Version: "v1alpha1"}
+	SchemaGroupVersion         = schema.GroupVersion{Group: GroupName, Version: "v1alpha2"}
 	SchemeGroupVersionInternal = schema.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
 )
 
 // Resource takes an unqualified resource and returns a Group-qualified GroupResource.
 func Resource(resource string) schema.GroupResource {
-	return SchemeGroupVersion.WithResource(resource).GroupResource()
+	return SchemaGroupVersion.WithResource(resource).GroupResource()
 }
 
 // addKnownTypes adds the set of types defined in this package to the supplied scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(SchemeGroupVersion,
+	scheme.AddKnownTypes(SchemaGroupVersion,
 		&CollectorSet{},
 		&CollectorSetList{},
 	)
-	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
+	metav1.AddToGroupVersion(scheme, SchemaGroupVersion)
 
 	scheme.AddKnownTypes(SchemeGroupVersionInternal,
 		&CollectorSet{},

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	crv1alpha1 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1"
+	crv1alpha2 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha2"
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/constants"
 	"github.com/logicmonitor/lm-sdk-go/client"
 	"github.com/logicmonitor/lm-sdk-go/client/lm"
@@ -22,7 +22,7 @@ import (
 
 // CreateOrUpdateCollectorSet creates a replicaset for each collector in
 // a CollectorSet
-func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, controller *Controller) ([]int32, error) {
+func CreateOrUpdateCollectorSet(collectorset *crv1alpha2.CollectorSet, controller *Controller) ([]int32, error) {
 	groupID := collectorset.Spec.GroupID
 	if groupID == 0 || !checkCollectorGroupExistsByID(controller.LogicmonitorClient, groupID) {
 		groupName := constants.ClusterCollectorGroupPrefix + collectorset.Spec.ClusterName
@@ -66,8 +66,7 @@ func CreateOrUpdateCollectorSet(collectorset *crv1alpha1.CollectorSet, controlle
 	return collectorset.Status.IDs, nil
 }
 
-func createStsObject(collectorset *crv1alpha1.CollectorSet, ids []int32, ignoreSSL bool) (*appsv1.StatefulSet, error) {
-
+func createStsObject(collectorset *crv1alpha2.CollectorSet, ids []int32, ignoreSSL bool) (*appsv1.StatefulSet, error) {
 	secretIsOptional := false
 	collectorSize := strings.ToLower(collectorset.Spec.Size)
 	log.Infof("Collector size is %s", collectorSize)
@@ -190,11 +189,11 @@ func createStsObject(collectorset *crv1alpha1.CollectorSet, ids []int32, ignoreS
 				},
 				{
 					Name:  "collector_version",
-					Value: fmt.Sprint(collectorset.Spec.CollectorVersion), //the default value is 0, santaba will assign the latest version
+					Value: fmt.Sprint(collectorset.Spec.CollectorVersion), // the default value is 0, santaba will assign the latest version
 				},
 				{
 					Name:  "use_ea",
-					Value: fmt.Sprint(collectorset.Spec.UseEA), //the default value is false, santaba will assign the latest GD version
+					Value: fmt.Sprint(collectorset.Spec.UseEA), // the default value is false, santaba will assign the latest GD version
 				},
 				{
 					Name:  "COLLECTOR_IDS",
@@ -202,7 +201,7 @@ func createStsObject(collectorset *crv1alpha1.CollectorSet, ids []int32, ignoreS
 				},
 				{
 					Name:  "ignore_ssl",
-					Value: fmt.Sprint(ignoreSSL), //the default value is false
+					Value: fmt.Sprint(ignoreSSL), // the default value is false
 				},
 			},
 			Resources: getResourceRequirements(collectorSize),
@@ -217,7 +216,7 @@ func createStsObject(collectorset *crv1alpha1.CollectorSet, ids []int32, ignoreS
 	return &statefulset, nil
 }
 
-func getCollectorImage(collectorset *crv1alpha1.CollectorSet) string {
+func getCollectorImage(collectorset *crv1alpha2.CollectorSet) string {
 	if collectorset.Spec.ImageRepository == "" {
 		return constants.DefaultCollectorImage
 	}
@@ -228,7 +227,7 @@ func getCollectorImage(collectorset *crv1alpha1.CollectorSet) string {
 	return collectorset.Spec.ImageRepository + ":" + imageTag
 }
 
-func getCollectorImagePullPolicy(collectorset *crv1alpha1.CollectorSet) (apiv1.PullPolicy, error) {
+func getCollectorImagePullPolicy(collectorset *crv1alpha2.CollectorSet) (apiv1.PullPolicy, error) {
 	if collectorset.Spec.ImagePullPolicy == "" {
 		return constants.DefaultCollectorImagePullPolicy, nil
 	}
@@ -237,10 +236,9 @@ func getCollectorImagePullPolicy(collectorset *crv1alpha1.CollectorSet) (apiv1.P
 		return collectorset.Spec.ImagePullPolicy, nil
 	}
 	return "", fmt.Errorf("unsupported imagePullPolicy value: %v, supported values: [%v, %v, %v]", collectorset.Spec.ImagePullPolicy, apiv1.PullAlways, apiv1.PullNever, apiv1.PullIfNotPresent)
-
 }
 
-func setProxyConfiguration(collectorset *crv1alpha1.CollectorSet, statefulset *appsv1.StatefulSet) {
+func setProxyConfiguration(collectorset *crv1alpha2.CollectorSet, statefulset *appsv1.StatefulSet) {
 	if collectorset.Spec.ProxyURL == "" {
 		return
 	}
@@ -282,17 +280,17 @@ func setProxyConfiguration(collectorset *crv1alpha1.CollectorSet, statefulset *a
 	}
 }
 
-func validateTolerations(tolerations []v1.Toleration) {
+func validateTolerations(tolerations []apiv1.Toleration) {
 	valid := true
 	if tolerations != nil {
 		for _, toleration := range tolerations {
-			if toleration.Operator == v1.TolerationOpExists && toleration.Value != "" {
+			if toleration.Operator == apiv1.TolerationOpExists && toleration.Value != "" {
 				log.Errorf("Value must be empty when 'operator' is 'Exists'. Toleration: %v", toleration)
 				valid = false
-			} else if toleration.Operator != v1.TolerationOpExists && toleration.Key == "" {
+			} else if toleration.Operator != apiv1.TolerationOpExists && toleration.Key == "" {
 				log.Errorf("Operator must be 'Exists' when 'key' is empty. Toleration: %v", toleration)
 				valid = false
-			} else if toleration.Effect != v1.TaintEffectNoExecute && toleration.TolerationSeconds != nil {
+			} else if toleration.Effect != apiv1.TaintEffectNoExecute && toleration.TolerationSeconds != nil {
 				log.Errorf("Effect must be 'NoExecute' when 'tolerationSeconds' is set. Toleration: %v", toleration)
 				valid = false
 			}
@@ -326,7 +324,7 @@ func updateCollectors(client *client.LMSdkGo, ids []int32) error {
 }
 
 // DeleteCollectorSet deletes the collectorset.
-func DeleteCollectorSet(collectorset *crv1alpha1.CollectorSet, client clientset.Interface) error {
+func DeleteCollectorSet(collectorset *crv1alpha2.CollectorSet, client clientset.Interface) error {
 	data := []byte(`[{"op":"add","path":"/spec/replicas","value": 0}]`)
 	if _, err := client.AppsV1().StatefulSets(collectorset.Namespace).Patch(collectorset.Name, types.JSONPatchType, data); err != nil {
 		return err
@@ -349,7 +347,7 @@ func checkCollectorGroupExistsByID(client *client.LMSdkGo, id int32) bool {
 	return true
 }
 
-func getCollectorGroupID(client *client.LMSdkGo, name string, collectorset *crv1alpha1.CollectorSet) (int32, error) {
+func getCollectorGroupID(client *client.LMSdkGo, name string, collectorset *crv1alpha2.CollectorSet) (int32, error) {
 	params := lm.NewGetCollectorGroupListParams()
 	filter := fmt.Sprintf("name:\"%s\"", name)
 	params.SetFilter(&filter)
@@ -368,8 +366,7 @@ func getCollectorGroupID(client *client.LMSdkGo, name string, collectorset *crv1
 	return -1, fmt.Errorf("failed to get collector group ID")
 }
 
-func addCollectorGroup(client *client.LMSdkGo, name string, collectorset *crv1alpha1.CollectorSet) (int32, error) {
-
+func addCollectorGroup(client *client.LMSdkGo, name string, collectorset *crv1alpha2.CollectorSet) (int32, error) {
 	kubernetesLabelApp := constants.CustomPropertyKubernetesLabelApp
 	kubernetesLabelAppValue := constants.CustomPropertyKubernetesLabelAppValue
 	autoClusterName := constants.CustomPropertyAutoClusterName
@@ -393,7 +390,7 @@ func addCollectorGroup(client *client.LMSdkGo, name string, collectorset *crv1al
 }
 
 // $(statefulset name)-$(ordinal)
-func getCollectorIDs(client *client.LMSdkGo, groupID int32, collectorset *crv1alpha1.CollectorSet) ([]int32, error) {
+func getCollectorIDs(client *client.LMSdkGo, groupID int32, collectorset *crv1alpha2.CollectorSet) ([]int32, error) {
 	var ids []int32
 	for ordinal := int32(0); ordinal < *collectorset.Spec.Replicas; ordinal++ {
 		name := fmt.Sprintf("%s%s-%d", constants.ClusterCollectorGroupPrefix, collectorset.Spec.ClusterName, ordinal)
