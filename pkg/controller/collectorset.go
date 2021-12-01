@@ -212,6 +212,7 @@ func createStsObject(collectorset *crv1alpha2.CollectorSet, ids []int32, ignoreS
 	}
 	statefulset.Spec.PodManagementPolicy = appsv1.ParallelPodManagement
 
+	log.Infof("statefulset object= %v", statefulset.Spec.Template.Spec)
 	return &statefulset, nil
 }
 
@@ -298,90 +299,6 @@ func validateTolerations(tolerations []apiv1.Toleration) {
 	if valid {
 		log.Debug("Valid configuration for tolerations")
 	}
-}
-
-func getCollectorImage(collectorset *crv1alpha1.CollectorSet) string {
-	if collectorset.Spec.ImageRepository == "" {
-		return constants.DefaultCollectorImage
-	}
-	imageTag := collectorset.Spec.ImageTag
-	if imageTag == "" {
-		imageTag = constants.DefaultCollectorImageTag
-	}
-	return collectorset.Spec.ImageRepository + ":" + imageTag
-}
-
-func getCollectorImagePullPolicy(collectorset *crv1alpha1.CollectorSet) (apiv1.PullPolicy, error) {
-	if collectorset.Spec.ImagePullPolicy == "" {
-		return constants.DefaultCollectorImagePullPolicy, nil
-	}
-	switch collectorset.Spec.ImagePullPolicy {
-	case apiv1.PullAlways, apiv1.PullNever, apiv1.PullIfNotPresent:
-		return collectorset.Spec.ImagePullPolicy, nil
-	}
-	return "", fmt.Errorf("unsupported imagePullPolicy value: %v, supported values: [%v, %v, %v]", collectorset.Spec.ImagePullPolicy, apiv1.PullAlways, apiv1.PullNever, apiv1.PullIfNotPresent)
-
-}
-
-func setProxyConfiguration(collectorset *crv1alpha1.CollectorSet, statefulset *appsv1.StatefulSet) {
-	if collectorset.Spec.ProxyURL == "" {
-		return
-	}
-	container := &statefulset.Spec.Template.Spec.Containers[0]
-	container.Env = append(container.Env,
-		apiv1.EnvVar{
-			Name:  "proxy_url",
-			Value: collectorset.Spec.ProxyURL,
-		},
-	)
-	if collectorset.Spec.SecretName != "" {
-		secretIsOptionalTrue := true
-		container.Env = append(container.Env,
-			apiv1.EnvVar{
-				Name: "proxy_user",
-				ValueFrom: &apiv1.EnvVarSource{
-					SecretKeyRef: &apiv1.SecretKeySelector{
-						LocalObjectReference: apiv1.LocalObjectReference{
-							Name: collectorset.Spec.SecretName,
-						},
-						Key:      "proxyUser",
-						Optional: &secretIsOptionalTrue,
-					},
-				},
-			},
-			apiv1.EnvVar{
-				Name: "proxy_pass",
-				ValueFrom: &apiv1.EnvVarSource{
-					SecretKeyRef: &apiv1.SecretKeySelector{
-						LocalObjectReference: apiv1.LocalObjectReference{
-							Name: collectorset.Spec.SecretName,
-						},
-						Key:      "proxyPass",
-						Optional: &secretIsOptionalTrue,
-					},
-				},
-			},
-		)
-	}
-}
-
-func getTolerations(collectorset *crv1alpha1.CollectorSet) []v1.Toleration {
-	tolerations := []v1.Toleration{}
-	if collectorset.Spec.Tolerations != nil {
-		log.Debugf("Tolerations: %v", collectorset.Spec.Tolerations)
-		for _, toleration := range collectorset.Spec.Tolerations {
-			if toleration.Operator == v1.TolerationOpExists && toleration.Value != "" {
-				log.Errorf("Value must be empty when 'operator' is 'Exists'. Toleration: %v", toleration)
-			} else if toleration.Operator != v1.TolerationOpExists && toleration.Key == "" {
-				log.Errorf("Operator must be 'Exists' when 'key' is empty. Toleration: %v", toleration)
-			} else if toleration.Effect != v1.TaintEffectNoExecute && toleration.TolerationSeconds != nil {
-				log.Errorf("Effect must be 'NoExecute' when 'tolerationSeconds' is set. Toleration: %v", toleration)
-			} else {
-				tolerations = append(tolerations, toleration)
-			}
-		}
-	}
-	return tolerations
 }
 
 func updateCollectors(client *client.LMSdkGo, ids []int32) error {
