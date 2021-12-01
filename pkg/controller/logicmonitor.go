@@ -19,7 +19,7 @@ func newLMClient(collectorsetconfig *config.Config) (*client.LMSdkGo, error) {
 	domain := collectorsetconfig.Account + ".logicmonitor.com"
 	config.SetAccountDomain(&domain)
 	if collectorsetconfig.ProxyURL == "" {
-		//return client.New(config), nil
+		// return client.New(config), nil
 		if collectorsetconfig.IgnoreSSL {
 			return newLMClientWithoutSSL(config)
 		}
@@ -56,10 +56,8 @@ func newClientWithProxy(config *client.Config, collectorsetconfig *config.Config
 }
 
 func newLMClientWithoutSSL(config *client.Config) (*client.LMSdkGo, error) {
-
-	var opts = httptransport.TLSClientOptions{InsecureSkipVerify: true}
-	var httpClient, err = httptransport.TLSClient(opts)
-
+	opts := httptransport.TLSClientOptions{InsecureSkipVerify: true}
+	httpClient, err := httptransport.TLSClient(opts)
 	if err != nil {
 		return nil, err
 	}

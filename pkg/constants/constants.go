@@ -4,10 +4,8 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 )
 
-var (
-	// Version is the Argus version and is set at build time.
-	Version string
-)
+// Version is the Argus version and is set at build time.
+var Version string
 
 const (
 	// UserAgentBase is the base string for the User-Agent HTTP header.

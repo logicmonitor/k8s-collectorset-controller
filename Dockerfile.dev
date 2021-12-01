@@ -8,7 +8,7 @@ RUN curl -L https://github.com/google/protobuf/releases/download/v3.3.0/protoc-3
 COPY ./proto ./proto
 RUN mkdir api
 RUN protoc -I proto proto/api.proto \
-  --go_out=plugins=grpc:api
+  --go_out=plugins=grpc:api --go_opt=paths=source_relative
 
 FROM golang:1.14-alpine as codegen
 RUN apk add --update git
@@ -21,13 +21,14 @@ WORKDIR $GOPATH/src/github.com/logicmonitor/k8s-collectorset-controller
 COPY ./ ./
 RUN deepcopy-gen \
   --go-header-file="hack/boilerplate.go.txt" \
-  --input-dirs="github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1" \
-  --bounding-dirs "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1" \
+  --input-dirs="github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha2" \
+  --bounding-dirs "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha2" \
   --output-file-base zz_generated.deepcopy
 
 FROM golang:1.14 as build
 WORKDIR $GOPATH/src/github.com/logicmonitor/k8s-collectorset-controller
 COPY --from=codegen $GOPATH/src/github.com/logicmonitor/k8s-collectorset-controller ./
+COPY --from=api $GOPATH/src/github.com/logicmonitor/k8s-collectorset-controller/api ./api
 ARG VERSION
 RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o /collectorset-controller -ldflags "-X \"github.com/logicmonitor/k8s-collectorset-controller/pkg/constants.Version=${VERSION}\""
 
@@ -38,7 +39,7 @@ RUN apk --update add ca-certificates \
   && rm -rf /var/lib/apk/*
 WORKDIR /app
 COPY --from=api /go/src/github.com/logicmonitor/k8s-collectorset-controller/api/* /tmp/
-COPY --from=codegen /go/src/github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1/zz_generated.deepcopy.go /tmp/
+COPY --from=codegen /go/src/github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha2/zz_generated.deepcopy.go /tmp/
 COPY --from=build /collectorset-controller /bin
 
 ENTRYPOINT ["collectorset-controller"]
