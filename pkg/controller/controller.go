@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	crv1alpha1 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha1"
+	crv1alpha2 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha2"
 	collectorsetclient "github.com/logicmonitor/k8s-collectorset-controller/pkg/client"
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/config"
 	"github.com/logicmonitor/k8s-collectorset-controller/pkg/distributor"
@@ -77,8 +77,8 @@ func (c *Controller) Run(ctx context.Context) error {
 
 func (c *Controller) watch(ctx context.Context) error {
 	_, controller := cache.NewInformer(
-		cache.NewListWatchFromClient(c.RESTClient, crv1alpha1.CollectorSetResourcePlural, apiv1.NamespaceAll, fields.Everything()),
-		&crv1alpha1.CollectorSet{},
+		cache.NewListWatchFromClient(c.RESTClient, crv1alpha2.CollectorSetResourcePlural, apiv1.NamespaceAll, fields.Everything()),
+		&crv1alpha2.CollectorSet{},
 		0,
 		cache.ResourceEventHandlerFuncs{
 			AddFunc:    c.addFunc,
@@ -92,7 +92,7 @@ func (c *Controller) watch(ctx context.Context) error {
 }
 
 func (c *Controller) addFunc(obj interface{}) {
-	collectorset := obj.(*crv1alpha1.CollectorSet)
+	collectorset := obj.(*crv1alpha2.CollectorSet)
 	log.Infof("Starting to create collectorset: %s", collectorset.Name)
 
 	ids, err := CreateOrUpdateCollectorSet(collectorset, c)
@@ -126,8 +126,8 @@ func (c *Controller) addFunc(obj interface{}) {
 // TODO: updating the collectorset ids in the add func will trigger this. We
 // need to check for this case
 func (c *Controller) updateFunc(oldObj, newObj interface{}) {
-	_ = oldObj.(*crv1alpha1.CollectorSet)
-	newcollectorset := newObj.(*crv1alpha1.CollectorSet)
+	_ = oldObj.(*crv1alpha2.CollectorSet)
+	newcollectorset := newObj.(*crv1alpha2.CollectorSet)
 
 	log.Infof("Starting to update collectorset: %s", newcollectorset.Name)
 	_, err := CreateOrUpdateCollectorSet(newcollectorset, c)
@@ -146,7 +146,7 @@ func (c *Controller) updateFunc(oldObj, newObj interface{}) {
 }
 
 func (c *Controller) deleteFunc(obj interface{}) {
-	collectorset := obj.(*crv1alpha1.CollectorSet)
+	collectorset := obj.(*crv1alpha2.CollectorSet)
 
 	log.Infof("Starting to delete collectorset: %s", collectorset.Name)
 	if err := DeleteCollectorSet(collectorset, c.Clientset); err != nil {
@@ -161,34 +161,20 @@ func (c *Controller) deleteFunc(obj interface{}) {
 	log.Infof("Finished deleting CollectorSet: %s", collectorset.Name)
 }
 
-// func (c *Controller) listCollectorSets() (*crv1alpha1.CollectorSetList, error) {
-// 	collectorsetList := &crv1alpha1.CollectorSetList{}
-// 	err := c.RESTClient.Get().
-// 		Resource(crv1alpha1.CollectorSetResourcePlural).
-// 		Do().
-// 		Into(collectorsetList)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("Failed to get CollectorSet list: %v", err)
-// 	}
-
-// 	return collectorsetList, nil
-// }
-
-func (c *Controller) updateCollectorSetStatus(collectorset *crv1alpha1.CollectorSet, ids []int32) (*crv1alpha1.CollectorSet, error) {
+func (c *Controller) updateCollectorSetStatus(collectorset *crv1alpha2.CollectorSet, ids []int32) (*crv1alpha2.CollectorSet, error) {
 	collectorsetCopy := collectorset.DeepCopy()
-	collectorsetCopy.Status = crv1alpha1.CollectorSetStatus{
-		State: crv1alpha1.CollectorSetStateRegistered,
+	collectorsetCopy.Status = crv1alpha2.CollectorSetStatus{
+		State: crv1alpha2.CollectorSetStateRegistered,
 		IDs:   ids,
 	}
 
 	err := c.RESTClient.Put().
 		Name(collectorset.ObjectMeta.Name).
 		Namespace(collectorset.ObjectMeta.Namespace).
-		Resource(crv1alpha1.CollectorSetResourcePlural).
+		Resource(crv1alpha2.CollectorSetResourcePlural).
 		Body(collectorsetCopy).
 		Do().
 		Error()
-
 	if err != nil {
 		return nil, fmt.Errorf("Failed to update status: %v", err)
 	}
@@ -238,7 +224,7 @@ func waitForCollectorsToRegister(lmClient *client.LMSdkGo, ids []int32) error {
 	}
 }
 
-func (c *Controller) save(collectorset *crv1alpha1.CollectorSet) error {
+func (c *Controller) save(collectorset *crv1alpha2.CollectorSet) error {
 	p := &policy.Policy{}
 
 	switch *collectorset.Spec.Policy.DistibutionStrategy {
@@ -260,6 +246,6 @@ func (c *Controller) save(collectorset *crv1alpha1.CollectorSet) error {
 	return nil
 }
 
-func (c *Controller) remove(collectorset *crv1alpha1.CollectorSet) error {
+func (c *Controller) remove(collectorset *crv1alpha2.CollectorSet) error {
 	return c.Storage.DeletePolicy(collectorset.Name)
 }
