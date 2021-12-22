@@ -90,6 +90,7 @@ func createStsObject(collectorset *crv1alpha2.CollectorSet, ids []int32, ignoreS
 	}
 	// Add label in user defined labels
 	statefulset.ObjectMeta.Labels["logicmonitor.com/collectorset"] = collectorset.Name
+	log.Debugf("statefulset.ObjectMeta.Labels = %v", statefulset.ObjectMeta.Labels)
 
 	statefulset.ObjectMeta.Name = collectorset.Name
 	statefulset.ObjectMeta.Namespace = collectorset.Namespace
@@ -109,15 +110,35 @@ func createStsObject(collectorset *crv1alpha2.CollectorSet, ids []int32, ignoreS
 	}
 
 	// configuring pod template
+	// load podLables
 	podLabels := make(map[string]string)
 	if statefulset.Spec.Template.ObjectMeta.Labels != nil {
 		podLabels = statefulset.Spec.Template.ObjectMeta.Labels
 	}
+	if statefulset.ObjectMeta.Labels != nil {
+		for key, value := range statefulset.ObjectMeta.Labels {
+			podLabels[key] = value
+		}
+	}
 	podLabels["logicmonitor.com/collectorset"] = collectorset.Name
+	log.Debugf("podLabels = %v", podLabels)
+
+	// load annotations
+	annotations := make(map[string]string)
+	if statefulset.Spec.Template.ObjectMeta.Annotations != nil {
+		annotations = statefulset.Spec.Template.ObjectMeta.Annotations
+	}
+	if statefulset.ObjectMeta.Annotations != nil {
+		for key, value := range statefulset.ObjectMeta.Annotations {
+			annotations[key] = value
+		}
+	}
+	log.Debugf("annotations = %v", annotations)
 
 	statefulset.Spec.Template.ObjectMeta = metav1.ObjectMeta{
-		Namespace: collectorset.Namespace,
-		Labels:    podLabels,
+		Namespace:   collectorset.Namespace,
+		Labels:      podLabels,
+		Annotations: annotations,
 	}
 
 	statefulset.Spec.Template.Spec.ServiceAccountName = constants.CollectorServiceAccountName
