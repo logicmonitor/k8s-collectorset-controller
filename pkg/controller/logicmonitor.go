@@ -41,7 +41,7 @@ func newClientWithProxy(config *client.Config, collectorsetconfig *config.Config
 	if err != nil {
 		return nil, err
 	}
-	log.Infof("Using http/s proxy: %s", collectorsetconfig.ProxyURL)
+	log.Infof("Using http/s proxy: %s with username: %s", collectorsetconfig.ProxyURL, collectorsetconfig.ProxyUser)
 	httpClient := http.Client{
 		Transport: &http.Transport{
 			Proxy: http.ProxyURL(proxyURL),
