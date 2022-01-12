@@ -21,6 +21,8 @@ import (
 
 const crdName = crv1alpha2.CollectorSetResourcePlural + "." + crv1alpha2.GroupName
 
+var preserveUnknownFields = true
+
 // Client represents the CollectorSet client.
 type Client struct {
 	Clientset              *clientset.Clientset
@@ -167,6 +169,24 @@ func getCustomResourceDefinationSchema() *apiextensionsv1.JSONSchemaProps {
 						Type:        "integer",
 						Minimum:     &minValue,
 					},
+					"labels": {
+						Description: "The Labels of the collector",
+						Type:        "object",
+						AdditionalProperties: &apiextensionsv1.JSONSchemaPropsOrBool{
+							Schema: &apiextensionsv1.JSONSchemaProps{
+								Type: "string",
+							},
+						},
+					},
+					"annotations": {
+						Description: "The Annotations of the collector",
+						Type:        "object",
+						AdditionalProperties: &apiextensionsv1.JSONSchemaPropsOrBool{
+							Schema: &apiextensionsv1.JSONSchemaProps{
+								Type: "string",
+							},
+						},
+					},
 					"useEA": {
 						Description: "Flag to opt for EA collector versions",
 						Type:        "boolean",
@@ -180,8 +200,29 @@ func getCustomResourceDefinationSchema() *apiextensionsv1.JSONSchemaProps {
 						Type:        "string",
 					},
 					"statefulsetspec": {
-						Description: "The collector StatefulSet specification for customizations",
-						Type:        "object",
+						Description:            "The collector StatefulSet specification for customizations",
+						Type:                   "object",
+						XPreserveUnknownFields: &preserveUnknownFields,
+						Properties: map[string]apiextensionsv1.JSONSchemaProps{
+							"template": {
+								Type: "object",
+								Properties: map[string]apiextensionsv1.JSONSchemaProps{
+									"spec": {
+										Type: "object",
+										Properties: map[string]apiextensionsv1.JSONSchemaProps{
+											"nodeSelector": {
+												Type: "object",
+												AdditionalProperties: &apiextensionsv1.JSONSchemaPropsOrBool{
+													Schema: &apiextensionsv1.JSONSchemaProps{
+														Type: "string",
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
 					},
 					"policy": {
 						Type: "object",
