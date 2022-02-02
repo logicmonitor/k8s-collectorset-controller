@@ -218,6 +218,28 @@ func getCustomResourceDefinationSchema() *apiextensionsv1.JSONSchemaProps {
 													},
 												},
 											},
+											"tolerations": {
+												Type: "array",
+												Items: &apiextensionsv1.JSONSchemaPropsOrArray{
+													Schema: &apiextensionsv1.JSONSchemaProps{
+														Type: "object",
+														Properties: map[string]apiextensionsv1.JSONSchemaProps{
+															"key": {
+																Type: "string",
+															},
+															"operator": {
+																Type: "string",
+															},
+															"value": {
+																Type: "string",
+															},
+															"effect": {
+																Type: "string",
+															},
+														},
+													},
+												},
+											},
 										},
 									},
 								},
