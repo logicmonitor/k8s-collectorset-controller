@@ -224,7 +224,7 @@ func createStsObject(collectorset *crv1alpha2.CollectorSet, ids []int32, ignoreS
 					Value: fmt.Sprint(ignoreSSL), // the default value is false
 				},
 			},
-			Resources: getResourceRequirements(collectorSize),
+			Resources: getResourceRequirements(collectorSize, collectorset.Spec.CollectorStatefulSetSpec),
 		},
 	}
 
@@ -467,7 +467,7 @@ func getCollectorIDs(client *client.LMSdkGo, groupID int32, collectorset *crv1al
 	return ids, nil
 }
 
-func getResourceRequirements(size string) apiv1.ResourceRequirements {
+func getResourceRequirements(size string, spec appsv1.StatefulSetSpec) apiv1.ResourceRequirements {
 	resourceList := apiv1.ResourceList{}
 	var quantity *resource.Quantity
 	switch size {
@@ -487,6 +487,16 @@ func getResourceRequirements(size string) apiv1.ResourceRequirements {
 		break
 	}
 	resourceList[apiv1.ResourceMemory] = *quantity
+	if len(spec.Template.Spec.Containers) >= 0 {
+		for _, container := range spec.Template.Spec.Containers {
+			if container.Name == constants.CollectorServiceAccountName {
+				userLimits := container.Resources.Limits
+				if es, ok := userLimits[apiv1.ResourceEphemeralStorage]; ok {
+					resourceList[apiv1.ResourceEphemeralStorage] = es
+				}
+			}
+		}
+	}
 
 	return apiv1.ResourceRequirements{
 		Limits: resourceList,
