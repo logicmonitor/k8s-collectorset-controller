@@ -2,7 +2,7 @@ package client
 
 var schemaStr = `
 {
-  "description": "The collectorset specefication schema",
+  "description": "The collectorset specification schema",
   "type": "object",
   "required": [
     "spec"
@@ -162,6 +162,13 @@ var schemaStr = `
                                 "additionalProperties": {
                                   "x-kubernetes-int-or-string": true
                                 }
+                              },
+                              "requests": {
+                                "description": "Requests describes the minimum amount of compute resources required. If Requests is omitted for a container, it defaults to Limits if that is explicitly specified, otherwise to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/",
+                                "type": "object",
+                                "additionalProperties": {
+                                  "x-kubernetes-int-or-string": true
+                                }
                               }
                             }
                           }
@@ -260,14 +267,6 @@ var schemaStr = `
                       },
                       "x-kubernetes-patch-merge-key": "ip",
                       "x-kubernetes-patch-strategy": "merge"
-                    },
-                    "hostNetwork": {
-                      "description": "Host networking requested for this pod. Use the host's network namespace. If this option is set, the ports that will be used must be specified. Default to false.",
-                      "type": "boolean"
-                    },
-                    "hostname": {
-                      "description": "Specifies the hostname of the Pod If not specified, the pod's hostname will be set to a system-defined value.",
-                      "type": "string"
                     },
                     "nodeName": {
                       "description": "NodeName is a request to schedule this pod onto a specific node. If it is non-empty, the scheduler simply schedules this pod onto that node, assuming that it fits resource requirements.",
@@ -415,7 +414,7 @@ var schemaStr = `
                                 "type": "string"
                               },
                               "sizeLimit": {
-                                "description": "Total amount of local storage required for this EmptyDir volume. The size limit is also applicable for memory medium. The maximum usage on memory medium EmptyDir would be the minimum value between the SizeLimit specified here and the sum of memory limits of all containers in a pod. The default is nil which means that the limit is undefined. More info: http://kubernetes.io/docs/user-guide/volumes#emptydir",
+                                "description": "Total amount of local storage required for this EmptyDir volume. The size limit is also applicable for memory medium. The maximum usage on memory medium EmptyDir would be the minimum value between the SizeLimit specified here and the sum of memory limits of all containers in a pod. The default is nil which means that the limit is undefined. More info: https://kubernetes.io/docs/user-guide/volumes#emptydir",
                                 "x-kubernetes-int-or-string": true
                               }
                             }

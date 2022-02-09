@@ -486,11 +486,13 @@ func getResourceRequirements(size string, spec appsv1.StatefulSetSpec) apiv1.Res
 	default:
 		break
 	}
+	var userRequests apiv1.ResourceList
 	resourceList[apiv1.ResourceMemory] = *quantity
 	if len(spec.Template.Spec.Containers) >= 0 {
 		for _, container := range spec.Template.Spec.Containers {
 			if container.Name == constants.CollectorServiceAccountName {
 				userLimits := container.Resources.Limits
+				userRequests = container.Resources.Requests
 				if es, ok := userLimits[apiv1.ResourceEphemeralStorage]; ok {
 					resourceList[apiv1.ResourceEphemeralStorage] = es
 				}
@@ -499,7 +501,8 @@ func getResourceRequirements(size string, spec appsv1.StatefulSetSpec) apiv1.Res
 	}
 
 	return apiv1.ResourceRequirements{
-		Limits: resourceList,
+		Limits:   resourceList,
+		Requests: userRequests,
 	}
 }
 
