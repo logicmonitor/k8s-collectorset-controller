@@ -1,7 +1,7 @@
 FROM golang:1.14 as api
 WORKDIR /go/src/github.com/logicmonitor/k8s-collectorset-controller
 RUN apt-get update
-RUN apt-get -y install bsdtar
+RUN apt-get -y install --no-install-recommends bsdtar
 RUN go get github.com/golang/protobuf/protoc-gen-go
 RUN curl -L https://github.com/google/protobuf/releases/download/v3.3.0/protoc-3.3.0-linux-x86_64.zip | bsdtar -xf - --strip-components=1 -C /bin bin/protoc \
   && chmod +x /bin/protoc
@@ -11,7 +11,7 @@ RUN protoc -I proto proto/api.proto \
   --go_out=plugins=grpc:api --go_opt=paths=source_relative
 
 FROM golang:1.14-alpine as codegen
-RUN apk add --update git
+RUN apk add --no-cache git
 RUN go get github.com/kubernetes/code-generator/cmd/deepcopy-gen || true \
   && cd /go/src/github.com/kubernetes/code-generator \
   && git checkout remotes/origin/release-1.17 \
@@ -42,9 +42,7 @@ RUN cp coverage.txt /coverage.txt
 
 FROM alpine:3.6
 LABEL maintainer="LogicMonitor <argus@logicmonitor.com>"
-RUN apk --update add ca-certificates \
-  && rm -rf /var/cache/apk/* \
-  && rm -rf /var/lib/apk/*
+RUN apk --no-cache add ca-certificates
 WORKDIR /app
 COPY --from=api /go/src/github.com/logicmonitor/k8s-collectorset-controller/api/* /tmp/
 COPY --from=codegen /go/src/github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha2/zz_generated.deepcopy.go /tmp/

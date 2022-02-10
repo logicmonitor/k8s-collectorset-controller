@@ -7,6 +7,7 @@ import (
 	"time"
 
 	crv1alpha2 "github.com/logicmonitor/k8s-collectorset-controller/pkg/apis/v1alpha2"
+	log "github.com/sirupsen/logrus"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -20,8 +21,6 @@ import (
 )
 
 const crdName = crv1alpha2.CollectorSetResourcePlural + "." + crv1alpha2.GroupName
-
-var preserveUnknownFields = true
 
 // Client represents the CollectorSet client.
 type Client struct {
@@ -68,185 +67,15 @@ func NewForConfig(cfg *rest.Config) (*Client, *runtime.Scheme, error) {
 	return c, s, nil
 }
 
-func getCustomResourceDefinationSchema() *apiextensionsv1.JSONSchemaProps {
-	minValue := 0.0
-	minReplicas := 1.0
-	minGroupID := -1.0
-	defaultReplicas, _ := json.Marshal(1) //nolint:gosec
-
-	return &apiextensionsv1.JSONSchemaProps{
-		Description: "The collectorset specefication schema",
-		Type:        "object",
-		Required:    []string{"spec"},
-		Properties: map[string]apiextensionsv1.JSONSchemaProps{
-			"spec": {
-				Type:     "object",
-				Required: []string{"imageRepository", "imageTag", "imagePullPolicy", "replicas", "size", "clusterName"},
-				Properties: map[string]apiextensionsv1.JSONSchemaProps{
-					"imageRepository": {
-						Description: "The image repository of the collector container",
-						Type:        "string",
-						Default: &apiextensionsv1.JSON{
-							Raw: []byte("\"logicmonitor/collector\""),
-						},
-					},
-					"imageTag": {
-						Description: "The image tag of the collector container",
-						Type:        "string",
-						Default: &apiextensionsv1.JSON{
-							Raw: []byte("\"latest\""),
-						},
-					},
-					"imagePullPolicy": {
-						Description: "The image pull policy of the collector container",
-						Type:        "string",
-						Default: &apiextensionsv1.JSON{
-							Raw: []byte("\"Always\""),
-						},
-						Enum: []apiextensionsv1.JSON{
-							{
-								Raw: []byte("\"Always\""),
-							},
-							{
-								Raw: []byte("\"IfNotPresent\""),
-							},
-							{
-								Raw: []byte("\"Never\""),
-							},
-						},
-					},
-					"replicas": {
-						Description: "The number of collector replicas",
-						Type:        "integer",
-						Minimum:     &minReplicas,
-						Default: &apiextensionsv1.JSON{
-							Raw: defaultReplicas,
-						},
-					},
-					"size": {
-						Description: "The collector size. Available collector sizes: nano, small, medium, large, extra_large, double_extra_large",
-						Type:        "string",
-						Default: &apiextensionsv1.JSON{
-							Raw: []byte("\"nano\""),
-						},
-						Enum: []apiextensionsv1.JSON{
-							{
-								Raw: []byte("\"nano\""),
-							},
-							{
-								Raw: []byte("\"small\""),
-							},
-							{
-								Raw: []byte("\"medium\""),
-							},
-							{
-								Raw: []byte("\"large\""),
-							},
-							{
-								Raw: []byte("\"extra_large\""),
-							},
-							{
-								Raw: []byte("\"double_extra_large\""),
-							},
-						},
-					},
-					"clusterName": {
-						Description: "The clustername of the collector",
-						Type:        "string",
-					},
-					"groupID": {
-						Description: "The groupId of the collector",
-						Type:        "integer",
-						Minimum:     &minGroupID,
-					},
-					"escalationChainID": {
-						Description: "The escalation chain Id of the collectors",
-						Type:        "integer",
-						Minimum:     &minValue,
-					},
-					"collectorVersion": {
-						Description: "The collector version (Fractional numbered version is invalid. For ex: 29.101 is invalid, correct input is 29101)",
-						Type:        "integer",
-						Minimum:     &minValue,
-					},
-					"labels": {
-						Description: "The Labels of the collector",
-						Type:        "object",
-						AdditionalProperties: &apiextensionsv1.JSONSchemaPropsOrBool{
-							Schema: &apiextensionsv1.JSONSchemaProps{
-								Type: "string",
-							},
-						},
-					},
-					"annotations": {
-						Description: "The Annotations of the collector",
-						Type:        "object",
-						AdditionalProperties: &apiextensionsv1.JSONSchemaPropsOrBool{
-							Schema: &apiextensionsv1.JSONSchemaProps{
-								Type: "string",
-							},
-						},
-					},
-					"useEA": {
-						Description: "Flag to opt for EA collector versions",
-						Type:        "boolean",
-					},
-					"proxyURL": {
-						Description: "The Http/Https proxy url of the collector",
-						Type:        "string",
-					},
-					"secretName": {
-						Description: "The Secret resource name of the collector",
-						Type:        "string",
-					},
-					"statefulsetspec": {
-						Description:            "The collector StatefulSet specification for customizations",
-						Type:                   "object",
-						XPreserveUnknownFields: &preserveUnknownFields,
-						Properties: map[string]apiextensionsv1.JSONSchemaProps{
-							"template": {
-								Type: "object",
-								Properties: map[string]apiextensionsv1.JSONSchemaProps{
-									"spec": {
-										Type: "object",
-										Properties: map[string]apiextensionsv1.JSONSchemaProps{
-											"nodeSelector": {
-												Type: "object",
-												AdditionalProperties: &apiextensionsv1.JSONSchemaPropsOrBool{
-													Schema: &apiextensionsv1.JSONSchemaProps{
-														Type: "string",
-													},
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-					"policy": {
-						Type: "object",
-						Properties: map[string]apiextensionsv1.JSONSchemaProps{
-							"distributionStrategy": {
-								Description: "Distribution strategy to provide collector ID to the client requests from available running collectors",
-								Type:        "string",
-								Default: &apiextensionsv1.JSON{
-									Raw: []byte("\"RoundRobin\""),
-								},
-							},
-							"orchestrator": {
-								Description: "The container orchestration platform designed to automate the deployment, scaling, and management of containerized applications",
-								Type:        "string",
-								Default: &apiextensionsv1.JSON{
-									Raw: []byte("\"Kubernetes\""),
-								},
-							},
-						},
-					},
-				},
-			},
-		},
+func getCustomResourceDefinationSchema() (*apiextensionsv1.JSONSchemaProps, error) {
+	schema := &apiextensionsv1.JSONSchemaProps{}
+	err := json.Unmarshal([]byte(schemaStr), schema)
+	if err != nil {
+		log.Errorf("Failed to parse schema definition: %v: %v", err, schemaStr)
+		return nil, fmt.Errorf("failed to parse schema definition: %w: %v", err, schemaStr)
 	}
+	log.Debugf("Unmarshaled schema: %v", schema)
+	return schema, nil
 }
 
 // CreateCustomResourceDefinition creates the CRD for collectors.
@@ -254,7 +83,11 @@ func getCustomResourceDefinationSchema() *apiextensionsv1.JSONSchemaProps {
 func (c *Client) CreateCustomResourceDefinition() (*apiextensionsv1.CustomResourceDefinition, error) {
 	schema := &apiextensionsv1.CustomResourceValidation{}
 	preserveUnknownFields := true
-	schema.OpenAPIV3Schema = getCustomResourceDefinationSchema()
+	var err error
+	schema.OpenAPIV3Schema, err = getCustomResourceDefinationSchema()
+	if err != nil {
+		return nil, err
+	}
 	crd := &apiextensionsv1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: crdName,
@@ -264,6 +97,11 @@ func (c *Client) CreateCustomResourceDefinition() (*apiextensionsv1.CustomResour
 			Names: apiextensionsv1.CustomResourceDefinitionNames{
 				Plural: crv1alpha2.CollectorSetResourcePlural,
 				Kind:   reflect.TypeOf(crv1alpha2.CollectorSet{}).Name(),
+				ShortNames: []string{
+					// cs is default shortname in kubernetes for ComponentStatuses, it is deprecated from 1.19+,
+					// when they remove it, we can use cs shortname here
+					"lmcs",
+				},
 			},
 			Scope: apiextensionsv1.NamespaceScoped,
 			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
@@ -289,7 +127,7 @@ func (c *Client) CreateCustomResourceDefinition() (*apiextensionsv1.CustomResour
 		},
 	}
 
-	_, err := c.APIExtensionsClientset.ApiextensionsV1().CustomResourceDefinitions().Create(crd)
+	_, err = c.APIExtensionsClientset.ApiextensionsV1().CustomResourceDefinitions().Create(crd)
 	if err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			if err1 := c.updateCRD(crd); err1 != nil {
